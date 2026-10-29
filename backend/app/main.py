@@ -445,7 +445,7 @@ def api_fittingroom(req: TryOnRequest) -> dict:
         shell["name"] = product.get("name")
         shell["image"] = product.get("image")
         shell["colour"] = product.get("colour")
-        shell["overall"] = report.overall
+        shell["overall"] = rep.get("overall")
         garments.append(shell)
 
     return {

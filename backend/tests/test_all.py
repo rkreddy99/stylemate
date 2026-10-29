@@ -320,5 +320,17 @@ a=recommend("warm","deep",per_row=6,audience="women")
 ok(all(i["audience"] in ("women","unisex","") for r in a["rows"] for i in r["items"]),
    "audience filter honoured")
 
+section("Fitting room endpoint")
+from fastapi.testclient import TestClient
+from app.main import app as _app
+_shirt=next(r for r in rows if r["articleType"]=="Shirts")
+_r=TestClient(_app).post("/api/fittingroom",json={"profile":{"gender":"male","chest":100},
+   "items":[{"sku":_shirt["id"],"size":"L","product":_shirt}]})
+ok(_r.status_code==200, f"/api/fittingroom answers 200 ({_r.status_code})")
+_d=_r.json() if _r.status_code==200 else {}
+ok(bool(_d.get("mesh",{}).get("positions")), "returns a body mesh")
+ok(len(_d.get("garments",[]))==1 and _d["garments"][0].get("overall"), "one garment shell carrying the fit verdict")
+ok(len(_d.get("fitReports",[]))==1, "one fit report")
+
 print(f"\n{'='*52}\n{P} passed, {Fl} failed\n{'='*52}")
 sys.exit(1 if Fl else 0)
