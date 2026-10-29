@@ -489,6 +489,7 @@ def search(text: str, *, limit: int = 24, use_model: bool = True,
                 "explanation": "The catalogue is empty. Sync it first.",
                 "filtersApplied": []}
 
+    asked_for = spec.audience          # said in the request, before the profile fills it
     # When the shopper does not say who it is for, shop for THEM. Without this
     # a man asking what goes with his jeans was offered women's blazers.
     if not spec.audience and profile:
@@ -633,8 +634,19 @@ def search(text: str, *, limit: int = 24, use_model: bool = True,
 
     # Words that match nothing in the shop must not come back as random
     # products the answer then calls "the closest match" ("sherwani", "tee").
-    if query_text.strip() and not spec.pair_anchor:
+    # ...unless no word exists in the shop at all but the request still has real
+    # constraints ("gift for my wife under 2000"): then rank within those.
+    constrained = bool(spec.budget_max or spec.budget_min or asked_for or spec.occasion)
+    if query_text.strip() and not spec.pair_anchor and (bm or not constrained):
         scored = [x for x in scored if x[3]]
+    if not bm and constrained:            # nothing to match on: best-rated first
+        def _rated(i):
+            try:
+                raw = __import__("json").loads(rows[i]["raw"] or "{}")
+                return float(raw.get("rating") or 0) * (1 if (raw.get("ratingTotal") or 0) >= 20 else 0.8)
+            except Exception:              # noqa: BLE001
+                return 0.0
+        scored = [(s + _rated(i) * 0.5, i, w, m) for s, i, w, m in scored]
     # Tie-break on catalogue order, not price: sorting ties by price pushed the
     # cheapest row of every group to the top regardless of relevance.
     scored.sort(key=lambda t: (-t[0], t[1]))
