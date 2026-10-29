@@ -135,6 +135,8 @@ body.home .grid{grid-template-columns:repeat(5,1fr)}
 .price s{color:var(--ink-2);font-size:var(--s-12)}
 .price em{font-style:normal;color:var(--sale);font-size:var(--s-12);font-weight:600}
 .rating{font-size:var(--s-12);color:var(--ink-2);margin-top:2px}
+.fitline{font-size:var(--s-12);margin-top:4px;padding-left:8px;border-left:2px solid var(--ink)}
+.tools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px}
 .empty{padding:48px 0;max-width:48ch}
 .empty h3{font-size:var(--s-20);margin:0 0 8px}
 .empty p{color:var(--ink-2);margin:0 0 16px}
@@ -198,7 +200,8 @@ dialog::backdrop{background:rgba(0,0,0,.4)}
 .lbl{font-weight:600;margin:0 0 8px}
 .season h3{font:700 var(--s-28)/1.1 var(--font);font-stretch:75%;margin:0 0 6px}
 .season .sw{display:flex;flex-wrap:wrap;gap:6px;margin:16px 0}
-.season .sw span{display:flex;align-items:center;gap:6px;border:1px solid var(--line);padding:4px 10px 4px 4px;font-size:var(--s-12)}
+.season .sw span,.season .sw .swb{display:flex;align-items:center;gap:6px;border:1px solid var(--line);padding:4px 10px 4px 4px;font-size:var(--s-12);background:none;border-radius:var(--radius)}
+.season .sw .swb:hover{border-color:var(--ink)}
 .season .sw i{width:18px;height:18px;border-radius:50%}
 .cam{position:relative;background:#111;aspect-ratio:4/3;margin-bottom:12px}
 .cam video,.cam img{width:100%;height:100%;object-fit:cover}
@@ -416,7 +419,24 @@ const PRICE=[['any','Any price',0,1e9],['u1','Under ₹1,000',0,999],['u25','₹
 const IDEAS=['Something to wear with blue jeans for a date','Wedding guest kurta under ₹3,000','Office shirts','Running shoes under ₹2,500','Goes with silver jewellery','A summer dress for a beach holiday'];
 const TRYABLE=new Set(['top','bottom','dress','outerwear','footwear','headwear']); // the 3D room does not draw jewellery, bags, watches
 const SIZE_ORDER=['XXS','XS','S','M','L','XL','XXL','XXXL','3XL','4XL'];
-const SEED_PROFILE={name:'Saket M.',gender:'male',unit:'cm',chest:104,waist:88,hips:100,height:178,shoulder:46,foot:27,frontLength:74,neck:40,thigh:58,fitPref:'true',sizes:{},palette:null};
+const SEED_PROFILE={name:'Saket M.',gender:'male',unit:'cm',chest:104,waist:88,hips:100,height:178,shoulder:46,foot:27,frontLength:74,neck:40,thigh:58,fitPref:'true',sizes:{},palette:null,shape:'',silhouette:'Any',rise:'Any'};
+/* Body-shape styling guidance, carried over unchanged from v15 (rankByFit). */
+const FIT_GUIDE={
+ 'Pear':{brief:'Hips wider than shoulders. Balance the top: structured or detailed tops, boat or square necks, puff sleeves, blazers ending at the hip; A-line skirts and dresses; wide-leg, bootcut, straight or palazzo bottoms in darker shades. Avoid skinny bottoms, heavy hip pockets or details, clingy fabric at the hips.',
+   good:['a-line','wide-leg','wide leg','bootcut','flared','palazzo','straight','structured','blazer','boat neck','puff','peplum','embroidered','dark'],bad:['skinny','bodycon','cargo','pencil','tight','super skinny']},
+ 'Apple':{brief:'Fuller midsection, slimmer legs. Lengthen and skim: V-necks, wrap and empire-waist styles, flowy tunics and kurtas, longline layers and open jackets; straight or bootcut bottoms. Avoid crop tops, tight waistbands, belts at the waist, bodycon and clingy fabric.',
+   good:['empire','wrap','v-neck','v neck','tunic','flowy','a-line','straight','longline','kurta','relaxed','open front','anarkali'],bad:['crop','cropped','bodycon','belted','tight','tucked']},
+ 'Hourglass':{brief:'Bust and hips balanced, defined waist. Follow the waist: wrap, belted, fitted and tailored pieces, high-rise bottoms, pencil and bodycon cuts, peplums. Avoid boxy, oversized or shapeless pieces that hide the waist.',
+   good:['wrap','belted','fitted','tailored','high-rise','high rise','bodycon','pencil','peplum','v-neck','slim fit'],bad:['boxy','oversized','shapeless','baggy','loose fit']},
+ 'Rectangle':{brief:'Shoulders, waist and hips similar. Create shape: peplums, ruffles, belts, wraps, layering, cropped jackets, A-line, pleated and tiered skirts, flared or wide-leg bottoms. Avoid straight shift shapes with nothing at the waist.',
+   good:['peplum','ruffle','belted','a-line','flared','layered','cropped','wrap','pleated','tiered','fit and flare'],bad:['shift','boxy','straight-cut']},
+ 'Inverted triangle':{brief:'Shoulders broader than hips. Soften the top and add volume below: V-necks, raglan or simple sleeves, darker plain tops; wide-leg, flared, palazzo, A-line or pleated bottoms. Avoid shoulder pads, puff sleeves, boat necks and very skinny bottoms.',
+   good:['v-neck','v neck','raglan','wide-leg','wide leg','flared','a-line','palazzo','pleated','bootcut','relaxed'],bad:['puff','shoulder','boat neck','off-shoulder','skinny']},
+ 'Oval':{brief:'Rounder through the middle. Long, unbroken vertical lines: V-necks, longline and open layers, straight and regular cuts, single colours top to bottom. Avoid crop tops, tight or clingy pieces and belts at the waist.',
+   good:['v-neck','v neck','longline','straight','open front','relaxed','regular','kurta'],bad:['crop','cropped','bodycon','tight','belted']}};
+const SIL_WORDS={'Relaxed':['relaxed','loose','oversized','regular','comfort'],'Straight':['straight','regular'],'Tailored':['tailored','slim','fitted','structured'],'Flared':['flare','flared','bootcut','wide','palazzo','a-line']};
+const NO_FIT_SLOTS=new Set(['footwear','watch','jewellery','eyewear','bag','belt','headwear']);
+const FIT={active:false,busy:false,source:'',scores:new Map()};
 
 /* ============================ state ============================ */
 const store={get(k,d){try{const v=localStorage.getItem('sm16_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('sm16_'+k,JSON.stringify(v))}catch(e){}}};
@@ -438,6 +458,13 @@ const pct=p=>p.mrp>p.price?Math.round(100-p.price/p.mrp*100):0;
 const swatch=c=>`background:${HEX[c]||'#ccc'}`;
 const audienceOf=g=>g==='female'?'women':'men';
 const owns=id=>!!(S.owned||[]).find(o=>o.id===id);
+/* Same kind of thing as something already owned: same article type and colour, or same type and slot. */
+function similarOwned(p){
+  if(!p||owns(p.id))return null;
+  for(const o of S.owned||[]){const q=prod(o.id);if(!q||q.id===p.id)continue;
+    if(q.articleType===p.articleType&&q.colour===p.colour)return {item:q,date:o.date,why:`same ${p.articleType.toLowerCase()} in ${p.colour.toLowerCase()}`};}
+  return null;
+}
 const prod=id=>BYID.get(id)||S.results.find(x=>x.id===id)||FULL.get(id);
 function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),2600)}
 async function api(path,body,opts={}){
@@ -482,6 +509,7 @@ function drawMe(){
 /* ============================ card ============================ */
 function badge(p){
   if(owns(p.id))return `<span class="badge">You own this</span>`;
+  if(similarOwned(p))return `<span class="badge">Similar to one you own</span>`;
   const pal=S.profile.palette;
   if(pal&&pal.colours.includes(p.colour))return `<span class="badge dot" title="${esc(p.colour)} is in your ${esc(pal.name)} palette"><i style="${swatch(p.colour)}"></i><span class="sr">In your colours</span></span>`;
   return '';
@@ -502,6 +530,7 @@ function card(p,extra=''){
       <div class="name">${esc(p.name)}</div>
       <div class="price"><b>${inr(p.price)}</b>${off?`<s>${inr(p.mrp)}</s><em>${off}% off</em>`:''}</div>
       ${p.rating?`<div class="rating">${p.rating} ★ (${k(p.ratingTotal)})</div>`:''}
+      ${FIT.active&&FIT.scores.get(p.id)&&!NO_FIT_SLOTS.has(p.slot)?`<div class="fitline">Fit ${FIT.scores.get(p.id).score} · ${esc(FIT.scores.get(p.id).why)}</div>`:''}
     </div>
   </article>`;
 }
@@ -533,6 +562,7 @@ function applyFilters(list){
   const pal=S.profile.palette;
   const by={lo:(a,b)=>a.price-b.price,hi:(a,b)=>b.price-a.price,rt:(a,b)=>(b.rating||0)-(a.rating||0),off:(a,b)=>pct(b)-pct(a)}[S.sort];
   if(by)out.sort(by);
+  else if(FIT.active){const sc=p=>(FIT.scores.get(p.id)||{score:-1}).score;out=[...out].sort((a,b)=>sc(b)-sc(a))}
   else if(pal)out=[...out].sort((a,b)=>pal.colours.includes(b.colour)-pal.colours.includes(a.colour));
   else if(!S.q)out=[...out].sort((a,b)=>(b.rating||0)*Math.log10((b.ratingTotal||0)+1)-(a.rating||0)*Math.log10((a.ratingTotal||0)+1));
   return out;
@@ -557,21 +587,66 @@ function drawResults(){
   drawFilters();
   const a=S.answer;
   $('answer').innerHTML=a?`<div class="answer"><div class="who">StyleMate</div><p>${esc(a.text)}</p>${a.picks.length?`<div class="chips">${a.picks.map(p=>`<button class="chip" data-pd="${p.id}"><img src="${esc(photo(p))}" alt="">${esc(p.name)} · ${inr(p.price)}</button>`).join('')}</div>`:''}</div>`:'';
-  $('res-head').hidden=!!S.q;$('res-title').textContent=CATS.find(c=>c[0]===S.cat)[1];
+  $('res-head').hidden=!!S.q;$('res-title').textContent=S.cat==='all'&&S.filters.colours.length===1?'In '+S.filters.colours[0]:CATS.find(c=>c[0]===S.cat)[1];
   $('count').textContent=`${list.length.toLocaleString('en-IN')} ${list.length===1?'item':'items'}`;
   const pal=S.profile.palette;
-  $('palette-on').innerHTML=pal?`<span class="dots">${pal.colours.slice(0,6).map(c=>`<i style="${swatch(c)}"></i>`).join('')}</span>Your colours first <button id="pal-off">Turn off</button>`:`<button class="linkish" data-open="dlg-colours">Show my colours first</button>`;
+  const shape=S.profile.shape;
+  $('palette-on').innerHTML=`<span class="tools">${pal?`<span><span class="dots">${pal.colours.slice(0,6).map(c=>`<i style="${swatch(c)}"></i>`).join('')}</span> Your colours first <button class="linkish" id="pal-off">Turn off</button></span>`:`<button class="linkish" data-open="dlg-colours">Show my colours first</button>`}
+    ${FIT.busy?'<span>Ranking by your fit…</span>':FIT.active?`<span>Ranked for ${/^[aeiou]/i.test(shape)?'an':'a'} ${esc(shape.toLowerCase())} shape${FIT.source==='ai'?'':' (keyword rules)'} <button class="linkish" id="fit-off">Turn off</button></span>`:`<button class="linkish" id="fit-rank">${shape?'Rank by my fit':'Rank by my body shape'}</button>`}</span>`;
   $('grid').innerHTML=list.length?list.slice(0,S.shown).map(p=>card(p)).join(''):`<div class="empty"><h3>Nothing matches these filters</h3><p>Try a wider price range, or clear the size and colour filters.</p><button class="secondary" id="clear-f2">Clear filters</button></div>`;
   $('more').hidden=list.length<=S.shown;
   $('more').textContent=`Show more (${Math.min(24,list.length-S.shown)} of ${list.length-S.shown} left)`;
 }
+/* Rank the products on screen by how well they flatter the shopper's body shape (v15 rankByFit). */
+function fitByRules(list){
+  const p0=S.profile,g=FIT_GUIDE[p0.shape]||{good:[],bad:[]},sil=SIL_WORDS[p0.silhouette]||[],
+    rise=p0.rise==='High-rise'?['high-rise','high rise']:p0.rise==='Mid-rise'?['mid-rise','mid rise']:[];
+  const m=new Map();
+  list.forEach(p=>{
+    if(NO_FIT_SLOTS.has(p.slot)){m.set(p.id,{score:50,why:'fit does not depend on body shape'});return}
+    const hay=(p.name+' '+(p.articleType||'')+' '+Object.values(p.attrs||{}).join(' ')).toLowerCase();
+    const good=g.good.filter(w=>hay.includes(w)),bad=g.bad.filter(w=>hay.includes(w));
+    const s=Math.max(5,Math.min(95,50+12*good.length-15*bad.length+(sil.some(w=>hay.includes(w))?8:0)+(rise.some(w=>hay.includes(w))?6:0)));
+    m.set(p.id,{score:s,why:good.length?`${good[0]} suits a ${p0.shape.toLowerCase()} shape`:bad.length?`${bad[0]} is usually less flattering here`:'no shape-specific detail in the listing'});
+  });
+  return m;
+}
+async function rankByFit(){
+  const p0=S.profile;
+  if(!p0.shape){drawProfile();$('dlg-profile').showModal();toast('Pick your body shape, then rank again.');return}
+  const list=applyFilters(baseList()).slice(0,40);if(!list.length)return;
+  FIT.busy=true;drawResults();
+  const sys='You are a fashion stylist ranking products for one shopper by how well each will flatter them.\nBody-shape guidance (common styling advice, not rules):\n'+
+    Object.keys(FIT_GUIDE).map(k2=>'- '+k2+': '+FIT_GUIDE[k2].brief).join('\n')+'\n'+
+    'Silhouette preference: Relaxed = easy, loose; Straight = clean straight lines; Tailored = close, structured; Flared = volume at the hem.\n'+
+    'Score every product 0-100 for THIS shopper: shape guidance first, then silhouette and rise preferences. Body shapes apply to men and women alike: judge men\'s and women\'s garments the same way. '+
+    'Every garment (part top, bottom, dress or outerwear) must be judged on its cut. ONLY parts footwear, watch, jewellery, eyewear, bag, belt and headwear are neutral: score those 50 with why "fit does not depend on body shape". '+
+    'Judge only from the name, type and description given; do not invent fabric or cut details.\n'+
+    'Reply with ONE JSON object and nothing else: {"ranked":[{"id":"<id>","score":0-100,"why":"<max 9 words, plain, e.g. wide-leg balances a pear shape>"}]} with every id given.';
+  const user='Shopper: body shape '+p0.shape+'; preferred silhouette '+(p0.silhouette||'Any')+'; preferred rise '+(p0.rise||'Any')+'.\nProducts (id | name | type | part | description):\n'+
+    list.map(p=>[p.id,p.name,p.articleType,p.slot,Object.entries(p.attrs||{}).map(([a,v])=>a+' '+v).join(', ')].join(' | ')).join('\n');
+  let scores=null,source='rules';
+  try{
+    const r=await api('/api/llm/chat',{json:true,messages:[{role:'system',content:sys},{role:'user',content:user}]});
+    const m=(r.text||'').match(/\{[\s\S]*\}/);const j=m?JSON.parse(m[0]):null;
+    if(j&&Array.isArray(j.ranked)){const ids=new Set(list.map(x=>x.id)),rules=fitByRules(list);scores=new Map();
+      j.ranked.forEach(x=>{if(x&&ids.has(x.id))scores.set(x.id,{score:Math.max(0,Math.min(100,Math.round(Number(x.score)||0))),why:String(x.why||'').slice(0,80)})});
+      list.forEach(x=>{const s=scores.get(x.id);if(s&&!NO_FIT_SLOTS.has(x.slot)&&/does not depend/i.test(s.why))scores.set(x.id,rules.get(x.id))});
+      if(scores.size<list.length/2)scores=null;else source='ai'}
+  }catch(e){}
+  if(!scores)scores=fitByRules(list);
+  Object.assign(FIT,{active:true,busy:false,source,scores});S.sort='rec';$('sort').value='rec';drawResults();
+  audit({kind:'fit-rank',shape:p0.shape,source,count:scores.size});
+  toast(`${scores.size} products ranked for your shape${source==='ai'?'':' (keyword rules)'}`);
+}
+function clearFit(){FIT.active=false;FIT.busy=false;FIT.scores=new Map()}
 function resetFilters(keepFor){S.filters={for:keepFor||audienceOf(S.profile.gender),price:'any',colours:[],sizes:[],fit:[],fabric:[],rating:false,hideOwned:false}}
-function goHome(){S.cat='all';S.q='';S.answer=null;$('q').value='';mode('home');drawNav();drawHome();scrollTo(0,0)}
-function goCat(cat){if(cat==='all'){goHome();return}S.cat=cat;S.q='';S.answer=null;$('q').value='';S.shown=24;resetFilters();mode('results');drawNav();drawResults();scrollTo(0,0)}
+function goHome(){clearFit();S.cat='all';S.q='';S.answer=null;$('q').value='';mode('home');drawNav();drawHome();scrollTo(0,0)}
+function goCat(cat){if(cat==='all'){goHome();return}clearFit();S.cat=cat;S.q='';S.answer=null;$('q').value='';S.shown=24;resetFilters();mode('results');drawNav();drawResults();scrollTo(0,0)}
 
 async function search(q){
   S.q=q.trim();if(!S.q)return;
-  S.shown=24;S.sort='rec';$('sort').value='rec';resetFilters();mode('results');drawNav();$('q').value=S.q;scrollTo(0,0);
+  clearFit();S.shown=24;S.sort='rec';$('sort').value='rec';resetFilters();mode('results');drawNav();$('q').value=S.q;scrollTo(0,0);
   $('answer').innerHTML='';$('res-head').hidden=true;$('grid').innerHTML='<div class="loading">Finding pieces for you…</div>';$('count').textContent='';$('more').hidden=true;
   const t0=performance.now();let d=null,err=null;
   try{
@@ -642,7 +717,8 @@ async function openProduct(id){
       <div class="sizes" role="group" aria-label="Size">${p.sizes.map(s=>`<button data-size="${esc(s)}" aria-pressed="${s===pdSize}">${esc(s)}</button>`).join('')}</div>
       <div class="hint" id="pd-sizehint">${pdSize?`${esc(pdSize)} is picked from your measurements.`:'Pick a size.'}</div>`:''}
     <div class="row-actions"><button class="primary" id="pd-bag" data-bag="${p.id}">${S.bag.some(b=>b.id===p.id)?'In your bag':'Add to bag'}</button><button class="secondary" data-save="${p.id}" aria-pressed="${S.saved.has(p.id)}">${S.saved.has(p.id)?'Saved':'Save'}</button></div>
-    ${owns(p.id)?`<p class="hint" style="margin:-8px 0 16px">You already own this, bought ${esc(S.owned.find(o=>o.id===p.id).date)}.</p>`:''}
+    ${owns(p.id)?`<p class="hint" style="margin:-8px 0 16px">You already own this, bought ${esc(S.owned.find(o=>o.id===p.id).date)}.</p>`
+      :(sim=>sim?`<p class="hint" style="margin:-8px 0 16px">Similar to the ${esc(sim.item.name)} you bought on ${esc(sim.date)} (${esc(sim.why)}). <button class="linkish" data-pd="${sim.item.id}">See it</button></p>`:'')(similarOwned(p))}
     ${apparel||p.slot==='footwear'?`<div class="block"><h3>Fit</h3><div id="pd-fit"><span class="hint">Checking against your measurements…</span></div>${TRYABLE.has(p.slot)?`<div class="row-actions" style="margin-bottom:0"><button class="secondary" data-try="${p.id}" style="flex:1">Try on in 3D</button></div>`:''}</div>`:''}
     <div class="block"><h3>Colour</h3><div style="display:flex;align-items:center;gap:10px"><span style="width:20px;height:20px;border-radius:50%;border:1px solid var(--line);${swatch(p.colour)}"></span>${esc(p.colour)}${inPal?` · in your ${esc(pal.name)} palette`:pal?' · outside your palette':''}</div></div>
     <div class="block"><h3>Wear it with</h3><div class="look">${lookFor(p).map(x=>`<button data-pd="${x.id}"><img src="${esc(photo(x))}" alt=""><span>${esc(x.name)}</span><span class="hint">${inr(x.price)}</span></button>`).join('')||'<span class="hint">Nothing in the catalogue pairs with this yet.</span>'}</div></div>
@@ -771,7 +847,8 @@ function drawColours(){
   const pick=(key,opts)=>`<div class="lbl">${key==='undertone'?'Undertone':'Depth'}</div><div class="pick" role="group" aria-label="${key}">${opts.map(([v,l,s,bg])=>`<button data-co="${key}" data-v="${v}" aria-pressed="${CO[key]===v}"><i style="background:${bg}"></i>${l}<small>${s}</small></button>`).join('')}</div>`;
   if(r){b.innerHTML=`
     <div class="season"><h3>${esc(r.season.name)}</h3><p style="margin:0;color:var(--ink-2)">${esc(r.season.summary)}</p>
-    <div class="sw">${r.season.colours.map(c=>`<span><i style="${swatch(c)}"></i>${esc(c)}</span>`).join('')}</div>
+    <div class="sw" role="group" aria-label="Shop one colour">${r.season.colours.map(c=>`<button class="swb" data-shopcol="${esc(c)}" title="Shop ${esc(c)}"><i style="${swatch(c)}"></i>${esc(c)}</button>`).join('')}</div>
+    <p class="hint">Tap a colour to shop just that colour.</p>
     ${(r.avoid||[]).length?`<p class="hint">Go easy on ${r.avoid.map(esc).join(', ')}.</p>`:''}
     ${(r.alternatives||[]).length?`<p class="hint">Not quite right? Try ${r.alternatives.slice(0,2).map(a=>`<button class="linkish" data-season="${esc(a.key)}">${esc(a.name)}</button>`).join(' or ')}.</p>`:''}</div>
     <div class="row-actions"><button class="primary" id="co-apply">Shop in these colours</button><button class="secondary" id="co-redo">Start again</button></div>`;return;}
@@ -820,7 +897,9 @@ function drawRoomPanel(){
   const g=S.profile.gender;
   $('room-panel').innerHTML=`
     <h3>Body</h3><div class="seg" role="group" aria-label="Body model"><button data-body="male" aria-pressed="${g==='male'}">Male</button><button data-body="female" aria-pressed="${g==='female'}">Female</button></div>
-    <p class="hint" style="margin:8px 0 20px">Built from your measurements. <button class="linkish" data-open="dlg-profile">Edit measurements</button></p>
+    <p class="hint" style="margin:8px 0 8px">Built from your measurements. <button class="linkish" data-open="dlg-profile">Edit measurements</button></p>
+    <p class="hint" style="margin:0 0 20px">${ROOM.photoId?`Using your photo for proportions and skin tone. <button class="linkish" id="room-forget">Forget my photo</button>`:`<label class="linkish" style="cursor:pointer">Add a full-body photo<input type="file" id="room-photo" accept="image/jpeg,image/png,image/webp" class="sr"></label> for proportions and skin tone (optional, kept in memory only).`}</p>
+    <p class="status" id="room-status" role="status">${esc(ROOM.status||'')}</p>
     <h3>Trying on${items.length?` (${items.length})`:''}</h3>
     ${items.length?items.map(r=>`<div class="piece"><img src="${esc(photo(r.p))}" alt=""><div><div class="brand">${esc(r.p.brand)}</div><div style="font-size:var(--s-12)">${esc(r.p.name)}</div><button class="rm" data-unroom="${r.id}">Remove</button></div>
       ${(r.p.sizes||[]).length>1?`<select data-roomsize="${r.id}" aria-label="Size">${r.p.sizes.map(s=>`<option ${s===r.size?'selected':''}>${esc(s)}</option>`).join('')}</select>`:'<span></span>'}</div>`).join('')
@@ -837,7 +916,7 @@ async function buildRoom(){
   const items=S.room.map(r=>({...r,p:prod(r.id)})).filter(r=>r.p).map(r=>({sku:r.id,size:r.size||null,product:{id:r.p.id,name:r.p.name,brand:r.p.brand,articleType:r.p.articleType,masterCategory:r.p.masterCategory,cat:r.p.cat,colour:r.p.colour,image:photo(r.p),slot:r.p.slot}}));
   $('room-msg').hidden=false;$('room-msg').textContent='Building your avatar…';
   try{
-    const data=await api('/api/fittingroom',{profile:bodyProfile(),items,photoId:null});
+    const data=await api('/api/fittingroom',{profile:bodyProfile(),items,photoId:ROOM.photoId||null});
     if(seq!==ROOM.seq)return;
     ROOM.data=data;
     const V=window.SM3D;
@@ -851,6 +930,18 @@ async function buildRoom(){
   }catch(e){if(seq===ROOM.seq)$('room-msg').textContent='Could not build the avatar: '+e.message}
   if(seq===ROOM.seq)drawRoomPanel();
 }
+async function roomPhoto(file){
+  if(file.size>12*1024*1024){toast('That photo is over 12 MB.');return}
+  ROOM.status='Reading your photo…';drawRoomPanel();
+  try{const fd=new FormData();fd.append('photo',file);const r=await api('/api/avatar/photo',fd);
+    ROOM.photoId=r.photoId;const ev=r.evidence||{};ROOM.status=`Photo read (${ev.source||'estimate'}, ${ev.confidence||'low'} confidence).`;buildRoom()}
+  catch(e){ROOM.status='Could not read that photo: '+e.message;drawRoomPanel()}
+}
+async function forgetRoomPhoto(){
+  if(!ROOM.photoId)return;const fd=new FormData();fd.append('photoId',ROOM.photoId);
+  try{await api('/api/avatar/forget',fd)}catch(e){}
+  ROOM.photoId=null;ROOM.status='Photo forgotten.';buildRoom();
+}
 function openRoom(){const d=$('dlg-room');if(!d.open)d.showModal();ROOM.data=null;drawRoomPanel();requestAnimationFrame(buildRoom)}
 
 /* ============================ profile ============================ */
@@ -861,6 +952,11 @@ async function drawProfile(){
     <label class="field"><span>Shopping for</span><select data-pf="gender"><option value="male" ${p.gender==='male'?'selected':''}>Men</option><option value="female" ${p.gender==='female'?'selected':''}>Women</option></select></label>
     <div class="block"><h3>Measurements</h3><p style="margin-bottom:12px">Used for your size and the fit checks.${p.sizes.top?` Your size for tops: <b>${esc(p.sizes.top)}</b>.`:''}</p>
       <div class="grid2">${f('height','Height')}${f('chest','Chest')}${f('waist','Waist')}${f('hips','Hips')}${f('shoulder','Shoulder')}${f('foot','Foot length')}</div>
+      <div class="grid2">
+        <label class="field"><span>Body shape</span><select data-pf="shape"><option value="">Not set</option>${Object.keys(FIT_GUIDE).map(s=>`<option ${p.shape===s?'selected':''}>${s}</option>`).join('')}</select></label>
+        <label class="field"><span>Silhouette you like</span><select data-pf="silhouette">${['Any','Relaxed','Straight','Tailored','Flared'].map(s=>`<option ${p.silhouette===s?'selected':''}>${s}</option>`).join('')}</select></label>
+        <label class="field"><span>Rise</span><select data-pf="rise">${['Any','High-rise','Mid-rise'].map(s=>`<option ${p.rise===s?'selected':''}>${s}</option>`).join('')}</select></label>
+      </div>
       <div class="row-actions"><button class="primary" id="pr-save">Save</button></div></div>
     <div class="block"><h3>Your colours</h3><p>${p.palette?`${esc(p.palette.name)} · <button class="linkish" data-open="dlg-colours">Change</button>`:`Not set. <button class="linkish" data-open="dlg-colours">Find my colours</button>`}</p></div>
     <div class="block"><h3>Wardrobe</h3><p>${(S.owned||[]).length} pieces you own. Orders add to it automatically.</p></div>
@@ -908,6 +1004,7 @@ document.addEventListener('click',async e=>{
   if(d.col){const c=d.col,f=S.filters.colours;f.includes(c)?f.splice(f.indexOf(c),1):f.push(c);S.shown=24;drawResults();return}
   if(d.pill){const key={size:'sizes',fit:'fit',fabric:'fabric'}[d.pill],arr=S.filters[key];arr.includes(d.v)?arr.splice(arr.indexOf(d.v),1):arr.push(d.v);S.shown=24;drawResults();return}
   if(d.co){CO[d.co]=d.v;drawColours();return}
+  if(d.shopcol){$('dlg-colours').close();clearFit();S.q='';S.answer=null;S.cat='all';$('q').value='';resetFilters();S.filters.colours=[d.shopcol];S.shown=24;mode('results');drawNav();drawResults();scrollTo(0,0);return}
   if(d.season){getPalette(d.season);return}
   if(d.unbag){S.bag=S.bag.filter(b=>b.id!==d.unbag);save();drawMe();drawBag();refresh();return}
   if(d.unroom){S.room=S.room.filter(r=>r.id!==d.unroom);save();buildRoom();return}
@@ -920,6 +1017,9 @@ document.addEventListener('click',async e=>{
     case 'co-redo':CO.result=null;CO.undertone=CO.depth=null;CO.note='';drawColours();return;
     case 'co-apply':S.profile.palette={name:CO.result.season.name,key:CO.result.season.key,colours:CO.result.season.colours};save();$('dlg-colours').close();refresh();toast(`${S.profile.palette.name} saved. Your colours now come first.`);return;
     case 'pal-off':S.profile.palette=null;save();refresh();return;
+    case 'fit-rank':rankByFit();return;
+    case 'fit-off':clearFit();drawResults();return;
+    case 'room-forget':forgetRoomPhoto();return;
     case 'ph-cam':cameraCapture(f=>{if(f)analyseLook(f);else drawPhoto()},$('ph-body'));return;
     case 'ph-again':drawPhoto();return;
     case 'ph-all':t.dataset.ids.split(',').forEach(id=>{if(!S.bag.some(b=>b.id===id))S.bag.push({id,size:null})});save();drawMe();toast(`${t.dataset.ids.split(',').length} pieces added to your bag`);return;
@@ -950,6 +1050,7 @@ function showSaved(){
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t.dataset.bagsize){const b=S.bag.find(x=>x.id===t.dataset.bagsize);if(b){b.size=t.value;save()}return}
+  if(t.id==='room-photo'&&t.files[0]){roomPhoto(t.files[0]);return}
   if(t.dataset.roomsize){const r=S.room.find(x=>x.id===t.dataset.roomsize);if(r){r.size=t.value;save();buildRoom()}return}
   const n=t.name;if(!n||!t.closest('#filters'))return;
   if(n==='for'||n==='price')S.filters[n]=t.value;else S.filters[n]=t.checked;S.shown=24;drawResults();

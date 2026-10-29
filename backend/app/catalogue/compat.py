@@ -247,3 +247,11 @@ def usages_for_occasion(occasion: str | None) -> list[str]:
         if key in o:
             return val
     return []
+
+
+def for_audience(row_audience: str, want: str | None) -> bool:
+    """True when a product suits the requested audience. Unisex suits everyone:
+    catalogue v2 carries Myntra's own gender, and most bags, watches and shoes
+    there are unisex, so an exact match hid them from every men's or women's
+    shopper (a men's search for a navy duffle bag found none of 30)."""
+    return not want or row_audience in (want, "unisex")

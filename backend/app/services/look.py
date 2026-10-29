@@ -38,7 +38,7 @@ from dataclasses import dataclass, field, asdict
 
 import numpy as np
 
-from ..catalogue.compat import (SLOT_CATEGORIES, canonical_colour,
+from ..catalogue.compat import (for_audience, SLOT_CATEGORIES, canonical_colour,
                                 colour_closeness, slot_of)
 from ..catalogue.store import catalogue, tokenise
 from ..config import settings
@@ -535,7 +535,7 @@ def match_item(item: DetectedItem, *, limit: int = 6, audience: str | None = Non
     if not pool and cats:
         pool = [i for i, r in enumerate(rows) if r["cat"] in cats]
     if audience:
-        pool = [i for i in pool if rows[i]["audience"] == audience]
+        pool = [i for i in pool if for_audience(rows[i]["audience"], audience)]
     cut = _WORN_BY_AUDIENCE.get(item.worn_by or "")
 
     q = query_text(item, audience)

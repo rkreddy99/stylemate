@@ -22,7 +22,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field, asdict
 
 from ..catalogue.store import catalogue
-from ..catalogue.compat import SLOT_CATEGORIES
+from ..catalogue.compat import SLOT_CATEGORIES, for_audience
 
 
 @dataclass
@@ -228,7 +228,7 @@ def recommend(undertone: str, depth: str, *, season_key: str | None = None,
                 continue
             if cats and r["cat"] not in cats:
                 continue
-            if audience and r["audience"] != audience:      # women's only, no unisex
+            if not for_audience(r["audience"], audience):     # plus unisex
                 continue
             if budget_max is not None and (r["price"] or 0) > budget_max:
                 continue

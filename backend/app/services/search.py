@@ -22,7 +22,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import date
 from typing import Any
 
-from ..catalogue.compat import (MONTH_NAMES, METAL_AFFINITY, colours_for_metal,
+from ..catalogue.compat import (for_audience, MONTH_NAMES, METAL_AFFINITY, colours_for_metal,
                                 complement_slots, goes_with_colour, slot_of,
                                 season_for_month, usages_for_occasion,
                                 SLOT_CATEGORIES)
@@ -448,10 +448,9 @@ def search(text: str, *, limit: int = 24, use_model: bool = True,
         idx = [i for i in idx if (rows[i]["price"] or 0) >= spec.budget_min]
         applied.append(f"price at or above Rs {int(spec.budget_min):,}")
     if spec.audience:
-        # Strict: "women" means women's products only, not unisex ones too,
-        # even when that leaves fewer to choose from.
-        idx = [i for i in idx if rows[i]["audience"] == spec.audience]
-        applied.append(f"{spec.audience}'s only")
+        # Women's (or men's) plus unisex: see compat.for_audience.
+        idx = [i for i in idx if for_audience(rows[i]["audience"], spec.audience)]
+        applied.append(f"{spec.audience}'s and unisex")
 
     slots = _allowed_slots(spec)
     if slots:
