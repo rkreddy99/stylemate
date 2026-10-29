@@ -907,7 +907,7 @@ function drawRoomPanel(){
   $('room-panel').innerHTML=`
     <h3>Body</h3><div class="seg" role="group" aria-label="Body model"><button data-body="male" aria-pressed="${g==='male'}">Male</button><button data-body="female" aria-pressed="${g==='female'}">Female</button></div>
     <p class="hint" style="margin:8px 0 8px">Built from your measurements. <button class="linkish" data-open="dlg-profile">Edit measurements</button></p>
-    <p class="hint" style="margin:0 0 20px">${ROOM.photoId?`Using your photo for proportions and skin tone. <button class="linkish" id="room-forget">Forget my photo</button>`:`<label class="linkish" style="cursor:pointer">Add a full-body photo<input type="file" id="room-photo" accept="image/jpeg,image/png,image/webp" class="sr"></label> for proportions and skin tone (optional, kept in memory only).`}</p>
+    <p class="hint" style="margin:0 0 20px">${ROOM.photoId?`Using your photo for proportions. <button class="linkish" id="room-forget">Forget my photo</button>`:`<label class="linkish" style="cursor:pointer">Add a full-body photo<input type="file" id="room-photo" accept="image/jpeg,image/png,image/webp" class="sr"></label> for proportions (optional, kept in memory only).`}</p>
     <p class="status" id="room-status" role="status">${esc(ROOM.status||'')}</p>
     <h3>Trying on${items.length?` (${items.length})`:''}</h3>
     ${items.length?items.map(r=>`<div class="piece"><img src="${esc(photo(r.p))}" alt=""><div><div class="brand">${esc(r.p.brand)}</div><div style="font-size:var(--s-12)">${esc(r.p.name)}</div><button class="rm" data-unroom="${r.id}">Remove</button></div>
@@ -1123,7 +1123,7 @@ class Viewer{
   static geom(pos,idx){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
   setBody(mesh,skin){
     [this.body,this.hair,this.base].forEach(o=>{if(o){this.scene.remove(o);o.geometry.dispose();o.material.dispose()}});this.hair=this.base=null;
-    const col=skin?new THREE.Color(skin[0]/255,skin[1]/255,skin[2]/255):new THREE.Color(0xd8b79a);
+    const col=new THREE.Color(0xe8cdb9);   // one pale skin tone for every body; photos set proportions only
     this.body=new THREE.Mesh(Viewer.geom(mesh.positions,mesh.indices),new THREE.MeshStandardMaterial({color:col,roughness:0.78,metalness:0.02}));
     this.body.castShadow=true;this.body.receiveShadow=true;this.scene.add(this.body);
     if(mesh.base&&mesh.base.positions.length){this.base=new THREE.Mesh(Viewer.geom(mesh.base.positions,mesh.base.indices),new THREE.MeshStandardMaterial({color:0x5c5752,roughness:0.9,metalness:0,side:THREE.DoubleSide}));this.scene.add(this.base)}

@@ -365,6 +365,10 @@ _bmm=_B3.build_body(A.resolve_measurements({"gender":"male"})[0])
 _P=np.array(_B3.shell_for(_bmm,{"articleType":"Tshirts","name":"Tee","attrs":{"Sleeve Length":"Short Sleeves"}},"L")["positions"]).reshape(-1,3)
 def _front(y): _b=_P[(np.abs(_P[:,1]-y)<0.015)&(np.abs(_P[:,0])<0.12)]; return _b[:,2].max()
 _below,_hem=_front(_bmm.lm["hip_y"]-0.03),_front(_P[:,1].min()+0.01)
+for _g in ("male","female"):
+    _bb=_B3.build_body(A.resolve_measurements({"gender":_g})[0]); _base=np.array(_B3.mesh_payload(_bb)["base"]["positions"]).reshape(-1,3)
+    ok(len(_base)>200 and (np.abs(_base[:,1]-_bb.lm["chest_y"])<0.02).any() and (_base[:,1]<_bb.lm["crotch"]).any(),
+       f"{_g} body wears underwear over the chest and hips ({len(_base)} verts)")
 ok(_hem<=_below+0.005, f"T-shirt hem does not flare past the hips ({(_hem-_below)*100:+.1f} cm)")
 
 print(f"\n{'='*52}\n{P} passed, {Fl} failed\n{'='*52}")

@@ -85,6 +85,46 @@ def _interp(y, knots):
 
 
 # ------------------------------------------------------------- body sets
+def _smooth_chest(V: np.ndarray, E: np.ndarray, torso: np.ndarray) -> np.ndarray:
+    """Remove nipple detail. Around each chest apex, fit a smooth quadratic
+    surface z(x, y) to the ring 2.5-6 cm out and lay the inner patch onto it,
+    blending at the edge; then relax the patch lightly. Breast shape stays,
+    the nipple goes."""
+    V = V.copy()
+    H = V[:, 1].max()
+    band = torso & (V[:, 1] > 0.66 * H) & (V[:, 1] < 0.76 * H)
+    patch = np.zeros(len(V))
+    for side in (1, -1):
+        m = band & (np.sign(V[:, 0]) == side)
+        if not m.any():
+            continue
+        apex = V[np.where(m)[0][np.argmax(V[m, 2])]].copy()
+        d = np.hypot(V[:, 0] - apex[0], V[:, 1] - apex[1])
+        front = torso & (V[:, 2] > apex[2] - 0.05)
+        ring = front & (d > 0.025) & (d < 0.06)
+        inner = front & (d < 0.035)
+        if ring.sum() < 8 or not inner.any():
+            continue
+        x, y = V[ring, 0] - apex[0], V[ring, 1] - apex[1]
+        A = np.stack([np.ones_like(x), x, y, x * x, y * y, x * y], axis=1)
+        coef = np.linalg.lstsq(A, V[ring, 2], rcond=None)[0]
+        xi, yi = V[inner, 0] - apex[0], V[inner, 1] - apex[1]
+        fit = np.stack([np.ones_like(xi), xi, yi, xi * xi, yi * yi, xi * yi], axis=1) @ coef
+        w = np.clip((0.035 - d[inner]) / 0.012, 0, 1)
+        V[inner, 2] = V[inner, 2] * (1 - w) + fit * w
+        patch = np.maximum(patch, np.clip((0.04 - d) / 0.015, 0, 1) * front)
+    deg = np.zeros(len(V))
+    np.add.at(deg, E[:, 0], 1)
+    np.add.at(deg, E[:, 1], 1)
+    # Plain Laplacian rounds the tip off, as on a shop mannequin.
+    for _ in range(30):
+        acc = np.zeros_like(V)
+        np.add.at(acc, E[:, 0], V[E[:, 1]])
+        np.add.at(acc, E[:, 1], V[E[:, 0]])
+        V += 0.5 * patch[:, None] * (acc / np.maximum(deg, 1)[:, None] - V)
+    return V
+
+
 def _load(gender: str) -> dict:
     if gender in _SETS:
         return _SETS[gender]
@@ -98,6 +138,8 @@ def _load(gender: str) -> dict:
         "source": str(d["source"]),
     }
     s["E"] = _edges(s["F"])
+    torso = (s["region"] == s["R"]["torso"]) & (s["arm_w"] < 0.3)
+    s["builds"] = np.stack([_smooth_chest(v, s["E"], torso) for v in s["builds"]])
     arm = s["arm_w"] >= 0.5
     leg = s["leg_w"] >= 0.5
     s["E_trunk"] = s["E"][~arm[s["E"]].any(axis=1)]
@@ -230,6 +272,8 @@ def _build_body(m: dict) -> Body:
             J[f"{key}_l"] = J[f"{key}_l"] + np.array([shift, 0, 0])
             J[f"{key}_r"] = J[f"{key}_r"] - np.array([shift, 0, 0])
         lm = _landmarks(s, V, J)
+    # Reshaping moves the chest apex, so remove nipple detail again on the final body.
+    V = _smooth_chest(V, s["E"], (s["region"] == s["R"]["torso"]) & (s["arm_w"] < 0.3))
     return Body(gender, V, _normals(V, s["F"]), J, lm, s)
 
 
@@ -299,10 +343,23 @@ def _base_layer(b: Body) -> dict:
     off = np.full(len(V), 0.0015)
     parts = [_subset(b, (aw < 0.5) & (y <= lm["hip_y"] + 0.05) & (y >= lm["crotch"] - 0.045), off,
                      _clip_y(lm["crotch"] - 0.045, lm["hip_y"] + 0.05))]
-    if b.gender == "female":
-        lo, hi = lm["chest_y"] - 0.06, lm["chest_y"] + 0.045
-        parts.append(_subset(b, (aw < 0.5) & (y >= lo) & (y <= hi), off, _clip_y(lo, hi),
-                             drop=aw >= 0.5))
+    if b.gender == "male":
+        # A plain vest, cut like any sleeveless top but sitting on the skin.
+        vest = garment_shell(b, {"attrs": {"Sleeve Length": "Sleeveless"}}, "top", "top",
+                             {"chest": lm["C_chest"] * 100,
+                              "length": (lm["neck_y"] + 0.025 - lm["hip_y"] - 0.01) * 100},
+                             inner=True)
+        parts.append((np.array(vest["positions"]).reshape(-1, 3), np.array(vest["indices"]).reshape(-1, 3)))
+        P, I = _join(parts)
+        return {"positions": P, "indices": I}
+    lo, hi = lm["chest_y"] - 0.06, lm["chest_y"] + 0.045          # bra
+    ax = abs(b.J["shoulder_l"][0]) - 0.02
+    keep = (aw < 0.5) & (y >= lo) & (y <= hi) & (np.abs(V[:, 0]) <= ax) & (b.s["region"] == b.s["R"]["torso"])
+    def clip(P, used, _lo=lo, _hi=hi, _ax=ax):
+        P = _clip_y(_lo, _hi)(P, used)
+        P[:, 0] = np.clip(P[:, 0], -_ax, _ax)
+        return P
+    parts.append(_subset(b, keep, off, clip, drop=aw >= 0.5))
     P, I = _join(parts)
     return {"positions": P, "indices": I}
 
@@ -448,7 +505,7 @@ def _join(parts):
 
 
 def garment_shell(b: Body, product: dict, family: str | None, slot: str,
-                  chart_row: dict) -> dict:
+                  chart_row: dict, inner: bool = False) -> dict:
     """Positions/indices for one garment worn on body `b`."""
     V, lm = b.V, b.lm
     y = V[:, 1]
@@ -466,8 +523,8 @@ def garment_shell(b: Body, product: dict, family: str | None, slot: str,
         parts.append(_subset(b, keep, np.full(len(V), 0.008), _clip_y(lo=lm["H"] - 0.075)))
     elif family in ("top", "shirt", "kurta", "outer", "dress"):
         # Layers stack outward: bottoms, then tops and dresses, then outerwear.
-        layer = 0.010 if family == "outer" else 0.004
-        floor = 0.008 if family == "outer" else 0.003
+        layer = 0.0 if inner else 0.010 if family == "outer" else 0.004
+        floor = 0.0015 if inner else 0.008 if family == "outer" else 0.003
         G_chest = cm("chest") or lm["C_chest"] * 1.08
         hem = lm["neck_y"] + 0.025 - (cm("length") or 0.7)     # chart length runs from the shoulder top
         hem = max(hem, lm["ankle_y"] + 0.15)
