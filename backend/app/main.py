@@ -515,5 +515,52 @@ def catalogue_js() -> Response:
                     headers={"Cache-Control": "no-cache"})
 
 
+_SLIM: dict = {}
+_SLIM_DROP = ("reviews", "details", "desc", "doc", "raw", "url", "sourceSku",
+              "masterCategory", "subCategory", "year", "spec", "size", "image")
+
+
+def _full(r: dict) -> dict:
+    """A store row is the indexed columns plus the original product JSON in `raw`."""
+    try:
+        raw = json.loads(r.get("raw") or "{}")
+    except ValueError:
+        raw = {}
+    return {**raw, **{k: v for k, v in r.items() if k not in ("raw", "doc") and v not in ("", None)}}
+
+
+@app.get("/api/catalogue")
+def catalogue_slim() -> Response:
+    """Card-sized rows for the v16 page; reviews and details come per product."""
+    pin = catalogue.pinned or {}
+    if _SLIM.get("hash") != pin.get("hash"):
+        rows = [{k: v for k, v in _full(r).items() if k not in _SLIM_DROP} for r in catalogue.rows]
+        _SLIM.update(hash=pin.get("hash"), body=json.dumps(
+            {"source": pin.get("source"), "total": len(rows), "rows": rows},
+            ensure_ascii=False, separators=(",", ":")))
+    return Response(_SLIM["body"], media_type="application/json",
+                    headers={"Cache-Control": "no-cache"})
+
+
+@app.get("/api/product/{pid}")
+def product_full(pid: str) -> dict:
+    p = catalogue.get(pid)
+    if not p:
+        raise HTTPException(404, "No such product.")
+    return _full(p)
+
+
+IMG_DIR = Path(__file__).parent / "data" / "img"
+
+
+@app.get("/img/{name}")
+def product_image(name: str) -> FileResponse:
+    path = (IMG_DIR / Path(name).name)
+    if path.suffix != ".jpg" or not path.is_file():
+        raise HTTPException(404, "No such image.")
+    return FileResponse(path, media_type="image/jpeg",
+                        headers={"Cache-Control": "public, max-age=86400"})
+
+
 if STATIC.exists():
     app.mount("/", StaticFiles(directory=STATIC, html=True), name="static")

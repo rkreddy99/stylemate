@@ -209,8 +209,11 @@ catalogue = Catalogue()
 
 # The shelf: built once by build_myntra_catalogue.py. SM_CATALOGUE_FILE points
 # elsewhere; an empty value turns pinning off and the browser sync works again.
-PINNED_FILE = os.getenv("SM_CATALOGUE_FILE",
-                        str(Path(__file__).resolve().parent.parent / "data" /
-                            "myntra_catalogue.json"))
+# v16 ships catalogue_v2.json (build_catalogue_v2.py); without it the v1 file is
+# used, so SM_CATALOGUE_FILE=.../myntra_catalogue.json is the rollback.
+_DATA = Path(__file__).resolve().parent.parent / "data"
+PINNED_FILE = os.getenv("SM_CATALOGUE_FILE", str(
+    _DATA / "catalogue_v2.json" if (_DATA / "catalogue_v2.json").is_file()
+    else _DATA / "myntra_catalogue.json"))
 if PINNED_FILE and Path(PINNED_FILE).is_file():
     catalogue.load_pinned(Path(PINNED_FILE))

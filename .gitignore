@@ -16,3 +16,6 @@ logs/
 
 # macOS
 .DS_Store
+
+# v16 catalogue photos (rebuilt by build_catalogue_v2.py from ~/myntai)
+backend/app/data/img/
