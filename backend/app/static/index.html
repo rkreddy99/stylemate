@@ -1122,16 +1122,17 @@ class Viewer{
   _loop(){this.controls.update();this.renderer.render(this.scene,this.camera);requestAnimationFrame(this._loop)}
   static geom(pos,idx){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
   setBody(mesh,skin){
-    if(this.body){this.scene.remove(this.body);this.body.geometry.dispose();this.body.material.dispose()}
+    [this.body,this.hair].forEach(o=>{if(o){this.scene.remove(o);o.geometry.dispose();o.material.dispose()}});this.hair=null;
     const col=skin?new THREE.Color(skin[0]/255,skin[1]/255,skin[2]/255):new THREE.Color(0xd8b79a);
     this.body=new THREE.Mesh(Viewer.geom(mesh.positions,mesh.indices),new THREE.MeshStandardMaterial({color:col,roughness:0.78,metalness:0.02}));
     this.body.castShadow=true;this.body.receiveShadow=true;this.scene.add(this.body);
+    if(mesh.hair&&mesh.hair.positions.length){this.hair=new THREE.Mesh(Viewer.geom(mesh.hair.positions,mesh.hair.indices),new THREE.MeshStandardMaterial({color:0x2b211c,roughness:0.95,metalness:0}));this.hair.castShadow=true;this.scene.add(this.hair)}
     const h=mesh.heightM||1.7;this.camera.position.set(0,h*0.62,h*1.85);this.controls.target.set(0,h*0.55,0);this.controls.update();
   }
   clearGarments(){[...this.garments.children].forEach(c=>{this.garments.remove(c);c.geometry&&c.geometry.dispose();c.material&&c.material.dispose()})}
   addGarment(g,hex,visible){
     if(!g.positions||!g.positions.length)return null;
-    const m=new THREE.Mesh(Viewer.geom(g.positions,g.indices),new THREE.MeshStandardMaterial({color:new THREE.Color(hex),roughness:0.86,metalness:0.02,side:THREE.DoubleSide,transparent:true,opacity:0.94}));
+    const m=new THREE.Mesh(Viewer.geom(g.positions,g.indices),new THREE.MeshStandardMaterial({color:new THREE.Color(hex),roughness:0.86,metalness:0.02,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1}));
     m.castShadow=true;m.visible=visible!==false;m.userData.sku=g.sku;this.garments.add(m);return m;
   }
 }

@@ -15,6 +15,7 @@ from typing import Any
 
 from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 
@@ -28,6 +29,7 @@ from .services import avatar as avatar_svc
 from .services import fit as fit_svc
 from .services import size_labels
 from .services import garment as garment_svc
+from .services import body3d
 from .services import look as look_svc
 from .services import palette as palette_svc
 from .services import search as search_svc
@@ -51,6 +53,9 @@ if not guard.PUBLIC or os.getenv("SM_CORS"):
     app.add_middleware(
         CORSMiddleware, allow_origins=list(settings.cors_origins) or ["*"],
         allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
+
+# The fitting-room body is ~1 MB of JSON; gzip takes it to about a third.
+app.add_middleware(GZipMiddleware, minimum_size=2048)
 
 MAX_UPLOAD = 12 * 1024 * 1024          # 12 MB
 ALLOWED = {"image/jpeg", "image/png", "image/webp"}
@@ -428,7 +433,12 @@ def api_fittingroom(req: TryOnRequest) -> dict:
         m, ev_notes = avatar_svc.apply_evidence(m, ev)
         notes.extend(ev_notes + ev.notes)
 
-    mesh = avatar_svc.build_mesh(m, evidence=ev)
+    real = body3d.available()
+    if real:
+        b = body3d.build_body(m)
+        mesh = body3d.mesh_payload(b)
+    else:
+        mesh = avatar_svc.build_mesh(m, evidence=ev)
     body = {k: v for k, v in prof.items() if k != "unit"}
     height_cm = m["height"]
 
@@ -441,7 +451,9 @@ def api_fittingroom(req: TryOnRequest) -> dict:
         rep = _fit_in_labels(product, it.get("size"), body, unit)
         reports.append(rep)
         size = rep["chart_size"]
-        shell = garment_svc.build_shell(product, size, m, height_cm)
+        shell = (body3d.shell_for(b, product, size) if real
+                 else garment_svc.build_shell(product, size, m, height_cm))
+        shell["sku"] = sku
         shell["name"] = product.get("name")
         shell["image"] = product.get("image")
         shell["colour"] = product.get("colour")
@@ -457,10 +469,12 @@ def api_fittingroom(req: TryOnRequest) -> dict:
         "fitReports": reports,
         "notes": notes,
         "disclosure": (
-            "The body is a parametric mesh from your measurements. Garment "
-            "shapes are lofted from each item's size chart - they show how "
-            "much room the garment has and where it ends, not the product's "
-            "real cut. No cloth simulation is running."),
+            ("The body is an Anny human model (NAVER LABS, open source) "
+             "reshaped to your chest, waist, hip and height. " if real else
+             "The body is a parametric mesh from your measurements. ") +
+            "Each garment is drawn from its size chart - it shows how much "
+            "room the garment has and where it ends, not the product's real "
+            "cut or print. No cloth simulation is running."),
     }
 
 

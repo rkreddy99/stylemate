@@ -133,7 +133,7 @@ def resolve_measurements(profile: dict) -> tuple[dict, list[str], list[str]]:
         out["frontLength"] = round(float(fl) * (CM_PER_IN if unit == "in" else 1.0), 1)
         supplied.append("frontLength")
     out["gender"] = gender
-    for key in ("shoulder", "chest", "waist", "hips", "height"):
+    for key in ("shoulder", "chest", "waist", "hips", "height", "thigh"):
         out[f"_{key}_supplied"] = key in supplied
     return out, supplied, defaulted
 

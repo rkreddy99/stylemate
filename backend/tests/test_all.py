@@ -331,6 +331,34 @@ _d=_r.json() if _r.status_code==200 else {}
 ok(bool(_d.get("mesh",{}).get("positions")), "returns a body mesh")
 ok(len(_d.get("garments",[]))==1 and _d["garments"][0].get("overall"), "one garment shell carrying the fit verdict")
 ok(len(_d.get("fitReports",[]))==1, "one fit report")
+ok(_d.get("mesh",{}).get("model")=="anny", "serves the Anny body when the baked meshes are present")
+import app.services.body3d as _B3
+_avail=_B3.available; _B3.available=lambda: False
+_r2=TestClient(_app).post("/api/fittingroom",json={"profile":{"gender":"female"},
+   "items":[{"sku":_shirt["id"],"size":"M","product":_shirt}]})
+_B3.available=_avail
+ok(_r2.status_code==200 and _r2.json()["mesh"].get("model")!="anny" and _r2.json()["garments"][0]["positions"],
+   "falls back to the parametric mannequin without the baked meshes")
+
+section("Fitting room: realistic body")
+for _prof in ({"gender":"male"},{"gender":"female"},
+              {"gender":"male","chest":112,"waist":104,"hips":108,"height":180},
+              {"gender":"female","chest":84,"waist":66,"hips":92,"height":165}):
+    _m=A.resolve_measurements(_prof)[0]
+    _g=_B3.mesh_payload(_B3.build_body(_m))["girthsCm"]
+    _worst=max(abs(_g[k]-_m[k]) for k in ("chest","waist","hips"))
+    ok(_worst<=2.5, f"{_prof['gender']} {_m['chest']}/{_m['waist']}/{_m['hips']} -> {_g['chest']}/{_g['waist']}/{_g['hips']} (worst {_worst:.1f} cm)")
+_bm=_B3.build_body(A.resolve_measurements({"gender":"female"})[0])
+for _p,_s in (({"articleType":"Tshirts","name":"Tee","attrs":{"Sleeve Length":"Short Sleeves"}},"M"),
+              ({"articleType":"Jeans","name":"Jeans"},"M"),({"articleType":"Kurtas","name":"Kurta"},"M"),
+              ({"articleType":"Dresses","name":"Dress"},"M"),({"articleType":"Casual Shoes","name":"Shoes"},"UK 6"),
+              ({"articleType":"Sarees","name":"Red Saree","masterCategory":"Apparel"},None)):
+    _sh=_B3.shell_for(_bm,_p,_s)
+    ok(len(_sh["positions"])>300 and len(_sh["indices"])%3==0, f"{_p['articleType']} draws a garment ({len(_sh['positions'])//3} verts)")
+_tee=_B3.shell_for(_bm,{"articleType":"Tshirts","name":"Tee","attrs":{"Sleeve Length":"Short Sleeves"}},"M")
+_long=_B3.shell_for(_bm,{"articleType":"Shirts","name":"Shirt","attrs":{"Sleeve Length":"Long Sleeves"}},"M")
+_vest=_B3.shell_for(_bm,{"articleType":"Tops","name":"Top","attrs":{"Sleeve Length":"Sleeveless"}},"M")
+ok(len(_long["positions"])>len(_tee["positions"])>len(_vest["positions"]), "long sleeves > short sleeves > sleeveless")
 
 print(f"\n{'='*52}\n{P} passed, {Fl} failed\n{'='*52}")
 sys.exit(1 if Fl else 0)
