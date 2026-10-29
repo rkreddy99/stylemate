@@ -530,8 +530,15 @@ def match_item(item: DetectedItem, *, limit: int = 6, audience: str | None = Non
     """
     rows = catalogue.rows
     cats = SLOT_CATEGORIES.get(item.slot, [])
+    want_type = (item.article_type or "").strip().lower()
+
+    def _same_type(r) -> bool:
+        rt = (r.get("articleType") or "").lower()
+        return bool(want_type) and (want_type == rt or want_type.rstrip("s") == rt.rstrip("s"))
+    # The detected article type also qualifies a row: a kurta set read as a
+    # "dress" must still find the Kurta Sets the catalogue files under "top".
     pool = [i for i, r in enumerate(rows)
-            if (r["slot"] == item.slot) or (not r["slot"] and r["cat"] in cats)]
+            if (r["slot"] == item.slot) or (not r["slot"] and r["cat"] in cats) or _same_type(r)]
     if not pool and cats:
         pool = [i for i, r in enumerate(rows) if r["cat"] in cats]
     if audience:
@@ -544,7 +551,6 @@ def match_item(item: DetectedItem, *, limit: int = 6, audience: str | None = Non
     sims = [sem.get(rows[i]["id"], 0.0) for i in pool] if sem else []
     s_lo, s_hi = (min(sims), max(sims)) if sims else (0.0, 0.0)
     want_colour = canonical_colour(item.colour) or canonical_colour(item.description)
-    want_type = (item.article_type or "").strip().lower()
     q_words = {w for w in tokenise(q) if len(w) > 2 and w not in _NOISE}
 
     w_sem, w_lex, w_type, w_col, w_aud = ((0.45, 0.20, 0.15, 0.15, 0.05) if sem
@@ -560,6 +566,8 @@ def match_item(item: DetectedItem, *, limit: int = 6, audience: str | None = Non
         # Under All, lean towards the garment's cut; otherwise every row fits.
         s_aud = 1.0 if audience or not cut or r["audience"] in (cut, "unisex") else 0.0
         score = w_sem * s_sem + w_lex * s_lex + w_type * s_type + w_col * s_col + w_aud * s_aud
+        if want_type and not s_type:
+            score = min(score, 0.70)       # a different garment type is never a 90% match
         scored.append((score, i, s_sem, s_type, s_col))
 
     scored.sort(key=lambda t: (-t[0], t[1]))
@@ -638,7 +646,8 @@ def analyse(image_bytes: bytes, *, audience: str | None = None,
         "lookId": det["lookId"],
         "detector": det["detector"],
         "note": det["note"] or (
-            "Recognised by " + str(v.get("model")) + ", matched in code against "
+            ("Recognised by " + str(v.get("model")) if v.get("model") else
+             "Read from colour and position (no vision model)") + ", matched in code against "
             f"{len(catalogue)} SKUs" + (" by meaning and keywords." if sem_meta.get("used")
                                          else " by keywords, type and colour.")),
         "summary": v.get("summary", ""),

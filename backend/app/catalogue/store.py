@@ -42,8 +42,29 @@ CREATE TABLE IF NOT EXISTS meta (k TEXT PRIMARY KEY, v TEXT);
 _WORD = re.compile(r"[a-z0-9]+")
 
 
+# Shopper words -> catalogue words, so "tees", "hoodie" or "sneakers" find
+# the T-shirts, sweatshirts and casual shoes the listings actually name.
+_SYN = {"tee": "tshirt", "tees": "tshirt", "duffle": "duffel", "sari": "saree",
+        "hoodie": "sweatshirt", "hoodies": "sweatshirt", "jogger": "track pant",
+        "joggers": "track pant", "denim": "jean", "denims": "jean",
+        "sneaker": "sneaker casual shoe", "sneakers": "sneaker casual shoe",
+        "trainer": "sport shoe", "trainers": "sport shoe", "pants": "trouser",
+        "chinos": "trouser chino", "specs": "spectacle", "shades": "sunglass"}
+
+
+def _stem(w: str) -> str:
+    if len(w) <= 3 or w.endswith(("ss", "us", "is")):
+        return w
+    if w.endswith("ies"):
+        return w[:-3] + "y"
+    if w.endswith(("ches", "shes", "xes", "sses")):
+        return w[:-2]
+    return w[:-1] if w.endswith("s") else w
+
+
 def tokenise(text: str) -> list[str]:
-    return _WORD.findall((text or "").lower())
+    t = re.sub(r"\bt[\s-]*shirts?\b", "tshirt", (text or "").lower())
+    return [_stem(x) for w in _WORD.findall(t) for x in _SYN.get(w, w).split()]
 
 
 class Catalogue:
@@ -148,9 +169,11 @@ class Catalogue:
     def _build_index(self) -> None:
         self._df = Counter()
         self._postings = defaultdict(list)
+        self._lens = {}
         total = 0
         for i, r in enumerate(self.rows):
             toks = tokenise(r.get("doc", ""))
+            self._lens[i] = len(toks)
             total += len(toks)
             counts = Counter(toks)
             for t, c in counts.items():
@@ -174,7 +197,7 @@ class Catalogue:
         terms = tokenise(query)
         if not terms:
             return {}
-        lens = {i: len(tokenise(r.get("doc", ""))) for i, r in enumerate(self.rows)}
+        lens = self._lens
         for t in set(terms):
             df = self._df.get(t, 0)
             if not df:

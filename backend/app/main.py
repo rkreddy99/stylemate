@@ -26,6 +26,7 @@ from .models import (AvatarRequest, FitRequest, LLMSettings, PaletteRequest,
                      SearchRequest, SizeProfile, SyncRequest, TryOnRequest)
 from .services import avatar as avatar_svc
 from .services import fit as fit_svc
+from .services import size_labels
 from .services import garment as garment_svc
 from .services import look as look_svc
 from .services import palette as palette_svc
@@ -325,9 +326,17 @@ def api_fit(req: FitRequest) -> dict:
     product = _product_for(req.sku, req.product)
     body = req.profile.model_dump()
     unit = body.pop("unit", "cm")
-    size = req.size or fit_svc.best_size(product, body, unit) or "M"
-    report = fit_svc.evaluate(product, size, body, unit)
-    return report.dict()
+    return _fit_in_labels(product, req.size, body, unit)
+
+
+def _fit_in_labels(product: dict, label: str | None, body: dict, unit: str) -> dict:
+    """Fit report for one of the product's own size labels (or its best one)."""
+    chart = size_labels.to_chart(label, product) if label else None
+    if not chart:
+        chart = fit_svc.best_size(product, body, unit) or "M"
+        label = None if not label or not size_labels.to_chart(label, product) else label
+    report = fit_svc.evaluate(product, chart, body, unit).dict()
+    return size_labels.report_in_labels(report, label, product)
 
 
 @app.post("/api/fit/batch")
@@ -340,8 +349,7 @@ def api_fit_batch(req: TryOnRequest) -> dict:
         if not sku:
             continue
         product = _product_for(sku, it.get("product"))
-        size = it.get("size") or fit_svc.best_size(product, body, unit) or "M"
-        out.append(fit_svc.evaluate(product, size, body, unit).dict())
+        out.append(_fit_in_labels(product, it.get("size"), body, unit))
     return {"reports": out}
 
 
@@ -430,9 +438,9 @@ def api_fittingroom(req: TryOnRequest) -> dict:
         if not sku:
             continue
         product = _product_for(sku, it.get("product"))
-        size = it.get("size") or fit_svc.best_size(product, body, unit) or "M"
-        report = fit_svc.evaluate(product, size, body, unit)
-        reports.append(report.dict())
+        rep = _fit_in_labels(product, it.get("size"), body, unit)
+        reports.append(rep)
+        size = rep["chart_size"]
         shell = garment_svc.build_shell(product, size, m, height_cm)
         shell["name"] = product.get("name")
         shell["image"] = product.get("image")

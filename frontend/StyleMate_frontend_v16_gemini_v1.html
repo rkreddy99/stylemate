@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="sm-version" content="StyleMate_frontend_v16_gemini_v1">
 <title>StyleMate</title>
+<link rel="icon" href="data:,">
 <meta name="description" content="StyleMate: an AI personal stylist for 2,500 Myntra products. Ask in your own words, shop in your colours, match an outfit photo and check the fit.">
 <style>#home-grid{min-height:900px}</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -414,8 +415,8 @@ footer div{max-width:1440px;margin:0 auto;padding:20px var(--gutter);color:var(-
 const VERSION='StyleMate_frontend_v16_gemini_v1';
 const API=location.protocol.startsWith('http')?location.origin:'http://127.0.0.1:8000';
 const CATS=[['all','New in'],['western','Western'],['ethnic','Ethnic'],['footwear','Footwear'],['accessories','Accessories'],['sports','Sports']];
-const HEX={Black:'#111',White:'#fff','Off White':'#f4f1e8',Cream:'#f1e6cc',Beige:'#d9c6a5',Tan:'#c19a6b',Brown:'#6b4423','Coffee Brown':'#4b3621',Grey:'#9a9a9a','Grey Melange':'#b5b5b5',Charcoal:'#36454f',Silver:'#c0c0c0',Gold:'#c9a227','Rose Gold':'#b76e79',Copper:'#b87333',Bronze:'#a97142',Metallic:'#a8a9ad',Steel:'#8894a0',Blue:'#2f5fb3','Navy Blue':'#1f2a52','Sky Blue':'#87ceeb','Turquoise Blue':'#30c5d2',Teal:'#127475',Green:'#2e7d32','Sea Green':'#2e8b57','Lime Green':'#9acd32','Fluorescent Green':'#7fff00',Olive:'#6b6b2a',Yellow:'#f2c94c',Mustard:'#d4a017',Orange:'#e67e22',Rust:'#b7410e',Coral:'#f27f6b',Peach:'#f6c6a8',Red:'#c62828',Maroon:'#6d1a1a',Burgundy:'#800020',Wine:'#5e1224',Pink:'#f2a1b8',Magenta:'#c2185b',Purple:'#6a1b9a',Lavender:'#c8b6e2',Mauve:'#b784a7',Nude:'#e3bc9a',Khaki:'#c3b091',Camel:'#c19a6b',Ivory:'#fffff0',Saffron:'#f4c430',Emerald:'#2e8b57',Mint:'#98ff98',Fuchsia:'#c154c1',Plum:'#8e4585',Taupe:'#8b8589',Stone:'#a9a28f',Indigo:'#3f3d8f','Royal Blue':'#4169e1','Pastel Pink':'#f8c8dc',Skin:'#e0b49a',Rose:'#d98fa0','Mushroom Brown':'#9a7f6a','Taupe Grey':'#8b8589',Multi:'conic-gradient(#c62828,#f2c94c,#2e7d32,#2f5fb3,#c62828)'};
-const PRICE=[['any','Any price',0,1e9],['u1','Under ₹1,000',0,999],['u25','₹1,000 – ₹2,500',1000,2500],['u5','₹2,500 – ₹5,000',2500,5000],['o5','Over ₹5,000',5000,1e9]];
+const HEX={Black:'#111',White:'#fff','Off White':'#f4f1e8',Cream:'#f1e6cc',Beige:'#d9c6a5',Tan:'#c19a6b',Brown:'#6b4423','Coffee Brown':'#4b3621',Grey:'#9a9a9a','Grey Melange':'#b5b5b5',Charcoal:'#36454f',Silver:'#c0c0c0',Gold:'#c9a227','Rose Gold':'#b76e79',Copper:'#b87333',Bronze:'#a97142',Metallic:'#a8a9ad',Steel:'#8894a0',Blue:'#2f5fb3','Navy Blue':'#1f2a52','Sky Blue':'#87ceeb','Turquoise Blue':'#30c5d2',Teal:'#127475',Green:'#2e7d32','Sea Green':'#2e8b57','Lime Green':'#9acd32','Fluorescent Green':'#7fff00',Olive:'#6b6b2a',Yellow:'#f2c94c',Mustard:'#d4a017',Orange:'#e67e22',Rust:'#b7410e',Coral:'#f27f6b',Peach:'#f6c6a8',Red:'#c62828',Maroon:'#6d1a1a',Burgundy:'#800020',Wine:'#5e1224',Pink:'#f2a1b8',Magenta:'#c2185b',Purple:'#6a1b9a',Lavender:'#c8b6e2',Mauve:'#b784a7',Nude:'#e3bc9a',Khaki:'#c3b091',Camel:'#c19a6b',Ivory:'#fffff0',Saffron:'#f4c430',Emerald:'#2e8b57',Mint:'#98ff98',Fuchsia:'#c154c1',Plum:'#8e4585',Taupe:'#8b8589',Stone:'#a9a28f',Indigo:'#3f3d8f','Royal Blue':'#4169e1','Pastel Pink':'#f8c8dc',Skin:'#e0b49a',Rose:'#d98fa0','Mushroom Brown':'#9a7f6a','Taupe Grey':'#8b8589',Aqua:'#5fd3c8','Mint Green':'#98e0b0',Multi:'conic-gradient(#c62828,#f2c94c,#2e7d32,#2f5fb3,#c62828)'};
+const PRICE=[['any','Any price',0,1e9],['u1','Under ₹1,000',0,1000],['u25','₹1,000 – ₹2,500',1000,2500],['u5','₹2,500 – ₹5,000',2500,5000],['o5','Over ₹5,000',5000,1e9]];
 const IDEAS=['Something to wear with blue jeans for a date','Wedding guest kurta under ₹3,000','Office shirts','Running shoes under ₹2,500','Goes with silver jewellery','A summer dress for a beach holiday'];
 const TRYABLE=new Set(['top','bottom','dress','outerwear','footwear','headwear']); // the 3D room does not draw jewellery, bags, watches
 const SIZE_ORDER=['XXS','XS','S','M','L','XL','XXL','XXXL','3XL','4XL'];
@@ -440,7 +441,7 @@ const FIT={active:false,busy:false,source:'',scores:new Map()};
 
 /* ============================ state ============================ */
 const store={get(k,d){try{const v=localStorage.getItem('sm16_'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('sm16_'+k,JSON.stringify(v))}catch(e){}}};
-const S={cat:'all',q:'',results:[],answer:null,shown:24,sort:'rec',
+const S={view:'',cat:'all',q:'',results:[],answer:null,shown:24,sort:'rec',
   filters:{for:'men',price:'any',colours:[],sizes:[],fit:[],fabric:[],rating:false,hideOwned:false},
   profile:store.get('profile',null)||structuredClone(SEED_PROFILE),
   saved:new Set(store.get('saved',[])),bag:store.get('bag',[]),owned:store.get('owned',null),
@@ -549,36 +550,54 @@ function drawHome(){
 }
 
 /* ============================ results ============================ */
-function sizeKey(s){const i=SIZE_ORDER.indexOf(String(s).toUpperCase());return i>=0?i:100+parseFloat(String(s).replace(/[^\d.]/g,''))||999}
+/* One filter key per size, whatever system the listing used: alpha stays alpha,
+   shoes become "UK n", bare numbers stay as waist/chest inches, junk is dropped. */
+function sizeFacet(s,p){const n=String(s).toUpperCase().replace(/\s+/g,'');let m;
+  if(/^(XXS|XS|S|M|L|XL|XXL|3XL|4XL)$/.test(n))return n; if(n==='XXXL')return '3XL';
+  if(p.slot==='footwear'){
+    if(m=n.match(/^UK(\d+(\.5)?)$/))return 'UK '+m[1];
+    if(m=n.match(/^EURO?(\d+)$/))return 'UK '+(+m[1]-34);
+    if(m=n.match(/^US(\d+(\.5)?)$/))return 'UK '+(+m[1]-(p.audience==='women'?2:1));
+    return null}
+  return /^\d{2}$/.test(n)?n:null}
+function sizeOrder(k){const a=['XXS','XS','S','M','L','XL','XXL','3XL','4XL'].indexOf(k);if(a>=0)return a;if(k.startsWith('UK '))return 100+parseFloat(k.slice(3));return 200+parseFloat(k)}
+const sizeKeys=p=>[...new Set((p.sizes||[]).map(s=>sizeFacet(s,p)).filter(Boolean))];
+const fitKey=p=>{const v=(p.attrs||{}).Fit;return v?v.replace(/^Loose$/,'Loose Fit'):null};
+const bayes=p=>((p.rating||0)*(p.ratingTotal||0)+4.0*25)/((p.ratingTotal||0)+25);
 function baseList(){return S.q?S.results:CAT.filter(p=>S.cat==='all'||p.cat===S.cat)}
-function applyFilters(list){
+function applyFilters(list,skip){
   const f=S.filters,[, ,lo,hi]=PRICE.find(x=>x[0]===f.price);
-  let out=list.filter(p=>(f.for==='all'||p.audience===f.for||p.audience==='unisex')&&p.price>=lo&&p.price<=hi
-    &&(!f.colours.length||f.colours.includes(p.colour))
-    &&(!f.sizes.length||(p.sizes||[]).some(s=>f.sizes.includes(s)))
-    &&(!f.fit.length||f.fit.includes((p.attrs||{}).Fit))
-    &&(!f.fabric.length||f.fabric.includes((p.attrs||{}).Fabric))
+  let out=list.filter(p=>(f.for==='all'||p.audience===f.for||p.audience==='unisex')&&p.price>=lo&&p.price<hi
+    &&(skip==='colours'||!f.colours.length||f.colours.includes(p.colour))
+    &&(skip==='sizes'||!f.sizes.length||sizeKeys(p).some(s=>f.sizes.includes(s)))
+    &&(skip==='fit'||!f.fit.length||f.fit.includes(fitKey(p)))
+    &&(skip==='fabric'||!f.fabric.length||f.fabric.includes((p.attrs||{}).Fabric))
     &&(!f.rating||(p.rating||0)>=4)&&(!f.hideOwned||!owns(p.id)));
+  if(skip)return out;
   const pal=S.profile.palette;
-  const by={lo:(a,b)=>a.price-b.price,hi:(a,b)=>b.price-a.price,rt:(a,b)=>(b.rating||0)-(a.rating||0),off:(a,b)=>pct(b)-pct(a)}[S.sort];
+  const by={lo:(a,b)=>a.price-b.price,hi:(a,b)=>b.price-a.price,rt:(a,b)=>bayes(b)-bayes(a),off:(a,b)=>pct(b)-pct(a)||bayes(b)-bayes(a)}[S.sort];
   if(by)out.sort(by);
   else if(FIT.active){const sc=p=>(FIT.scores.get(p.id)||{score:-1}).score;out=[...out].sort((a,b)=>sc(b)-sc(a))}
-  else if(pal)out=[...out].sort((a,b)=>pal.colours.includes(b.colour)-pal.colours.includes(a.colour));
-  else if(!S.q)out=[...out].sort((a,b)=>(b.rating||0)*Math.log10((b.ratingTotal||0)+1)-(a.rating||0)*Math.log10((a.ratingTotal||0)+1));
+  else if(pal&&!S.q)out=[...out].sort((a,b)=>pal.colours.includes(b.colour)-pal.colours.includes(a.colour));
+  else if(!S.q)out=[...out].sort((a,b)=>bayes(b)*Math.log10((b.ratingTotal||0)+10)-bayes(a)*Math.log10((a.ratingTotal||0)+10));
   return out;
 }
-function facet(list,fn,n=14){const c=new Map();list.forEach(p=>{const v=fn(p);(Array.isArray(v)?v:[v]).forEach(x=>{if(x)c.set(x,(c.get(x)||0)+1)})});return [...c.entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(e=>e[0])}
+function facetCounts(list,fn){const c=new Map();list.forEach(p=>{const v=fn(p);(Array.isArray(v)?v:[v]).forEach(x=>{if(x)c.set(x,(c.get(x)||0)+1)})});return c}
+function facet(list,fn,n=14){return [...facetCounts(list,fn).entries()].sort((a,b)=>b[1]-a[1]).slice(0,n).map(e=>e[0])}
 function drawFilters(){
-  const f=S.filters,base=baseList().filter(p=>f.for==='all'||p.audience===f.for||p.audience==='unisex');
-  const cols=facet(base,p=>p.colour,18);
-  const sizes=facet(base,p=>(p.sizes||[]).filter(s=>!/one\s*size/i.test(s)),16).sort((a,b)=>sizeKey(a)-sizeKey(b));
-  const fits=facet(base,p=>(p.attrs||{}).Fit,6),fabrics=facet(base,p=>(p.attrs||{}).Fabric,8);
-  const pills=(name,vals,sel)=>vals.length?`<fieldset><legend>${name}</legend><div class="pills">${vals.map(v=>`<button data-pill="${name.toLowerCase()}" data-v="${esc(v)}" aria-pressed="${sel.includes(v)}">${esc(v)}</button>`).join('')}</div></fieldset>`:'';
+  const f=S.filters,base=baseList();
+  const cols=facet(applyFilters(base,'colours'),p=>p.colour,18);
+  const sc=facetCounts(applyFilters(base,'sizes'),sizeKeys);
+  const allSizes=[...sc.keys()].sort((a,b)=>sizeOrder(a)-sizeOrder(b));
+  const apparel=baseList().some(p=>['top','bottom','dress','outerwear'].includes(p.slot));
+  const fits=apparel?facet(applyFilters(base,'fit'),fitKey,6):[],fabrics=apparel?facet(applyFilters(base,'fabric'),p=>(p.attrs||{}).Fabric,8):[];
+  const pills=(name,key,vals,sel)=>vals.length?`<fieldset><legend>${name}</legend><div class="pills">${vals.map(v=>`<button data-pill="${key}" data-v="${esc(v)}" aria-pressed="${sel.includes(v)}">${esc(v)}</button>`).join('')}</div></fieldset>`:'';
+  const sizes=allSizes.filter(s=>!s.startsWith('UK ')&&!/^\d/.test(s)),shoes=allSizes.filter(s=>s.startsWith('UK ')),nums=allSizes.filter(s=>/^\d/.test(s));
   $('filters').innerHTML=`
     <fieldset><legend>For</legend>${[['men','Men'],['women','Women'],['all','Everyone']].map(([v,l])=>`<label><input type="radio" name="for" value="${v}" ${f.for===v?'checked':''}>${l}</label>`).join('')}</fieldset>
     <fieldset><legend>Price</legend>${PRICE.map(([v,l])=>`<label><input type="radio" name="price" value="${v}" ${f.price===v?'checked':''}>${l}</label>`).join('')}</fieldset>
     ${cols.length?`<fieldset><legend>Colour</legend><div class="swatches">${cols.map(c=>`<button data-col="${esc(c)}" aria-pressed="${f.colours.includes(c)}" title="${esc(c)}" aria-label="${esc(c)}" style="${swatch(c)}"></button>`).join('')}</div></fieldset>`:''}
-    ${pills('Size',sizes,f.sizes)}${pills('Fit',fits,f.fit)}${pills('Fabric',fabrics,f.fabric)}
+    ${pills('Size','size',sizes,f.sizes)}${pills('Shoe size (UK)','size',shoes,f.sizes)}${pills('Waist / chest (in)','size',nums,f.sizes)}${pills('Fit','fit',fits,f.fit)}${pills('Fabric','fabric',fabrics,f.fabric)}
     <fieldset><legend>More</legend><label><input type="checkbox" name="rating" ${f.rating?'checked':''}>Rated 4 and up</label><label><input type="checkbox" name="hideOwned" ${f.hideOwned?'checked':''}>Hide things I own</label></fieldset>
     <button class="clear-f" id="clear-f">Clear filters</button>`;
 }
@@ -641,21 +660,23 @@ async function rankByFit(){
 }
 function clearFit(){FIT.active=false;FIT.busy=false;FIT.scores=new Map()}
 function resetFilters(keepFor){S.filters={for:keepFor||audienceOf(S.profile.gender),price:'any',colours:[],sizes:[],fit:[],fabric:[],rating:false,hideOwned:false}}
-function goHome(){clearFit();S.cat='all';S.q='';S.answer=null;$('q').value='';mode('home');drawNav();drawHome();scrollTo(0,0)}
-function goCat(cat){if(cat==='all'){goHome();return}clearFit();S.cat=cat;S.q='';S.answer=null;$('q').value='';S.shown=24;resetFilters();mode('results');drawNav();drawResults();scrollTo(0,0)}
+function goHome(){clearFit();S.view='';S.cat='all';S.q='';S.answer=null;$('q').value='';mode('home');drawNav();drawHome();scrollTo(0,0)}
+function goCat(cat){if(cat==='all'){goHome();return}clearFit();S.view='';S.cat=cat;S.q='';S.answer=null;$('q').value='';S.shown=24;resetFilters();mode('results');drawNav();drawResults();scrollTo(0,0)}
 
-async function search(q){
-  S.q=q.trim();if(!S.q)return;
-  clearFit();S.shown=24;S.sort='rec';$('sort').value='rec';resetFilters();mode('results');drawNav();$('q').value=S.q;scrollTo(0,0);
+async function search(q,forOverride){
+  S.q=q.trim();if(!S.q)return;S.view='';
+  clearFit();S.shown=24;S.sort='rec';$('sort').value='rec';resetFilters(forOverride);mode('results');drawNav();$('q').value=S.q;scrollTo(0,0);
   $('answer').innerHTML='';$('res-head').hidden=true;$('grid').innerHTML='<div class="loading">Finding pieces for you…</div>';$('count').textContent='';$('more').hidden=true;
   const t0=performance.now();let d=null,err=null;
   try{
-    d=await api('/api/search',{q:S.q,limit:60,useModel:true,profile:{gender:S.profile.gender,paletteColours:S.profile.palette?.colours||[]}});
+    const gender=forOverride==='women'?'female':forOverride==='men'?'male':forOverride==='all'?'':S.profile.gender;
+    d=await api('/api/search',{q:S.q,limit:200,useModel:true,profile:{gender,paletteColours:S.profile.palette?.colours||[]}});
     S.results=(d.results||[]).map(p=>({...(BYID.get(p.id)||{}),...p,photo:(BYID.get(p.id)||{}).photo||p.photo||p.image}));
     const text=(d.answer||'').replace(/\s*Connect a model[^.]*\.?/i,'').replace(/\s*\(?no model connected\)?\.?/i,'').replace(/Rs\.?\s?([\d,]+(?:\.\d+)?)/g,(m,n)=>'₹'+Math.round(Number(n.replace(/,/g,''))).toLocaleString('en-IN')).trim();
     const picks=S.results.filter(p=>text.includes(p.name)).slice(0,2);
-    S.answer=text?{text,picks:picks.length?picks:S.results.slice(0,2)}:null;
-    if(d.spec?.audience)S.filters.for=d.spec.audience==='unisex'?'all':d.spec.audience;
+    S.answer=text?{text,picks}:null;
+    if(forOverride)S.filters.for=forOverride;
+    else if(d.spec?.audience)S.filters.for=d.spec.audience==='unisex'?'all':d.spec.audience;
   }catch(e){
     err=e.message;S.results=[];S.answer={text:`Search is not answering right now (${e.message}). Browse the categories above instead.`,picks:[]};
   }
@@ -665,31 +686,26 @@ async function search(q){
 
 /* ============================ product sheet ============================ */
 const normSize=s=>String(s||'').replace(/\s+/g,'').toUpperCase();
-const COLLAR={XS:36,S:38,M:40,L:42,XL:44,XXL:46,'3XL':48};
-function nearestNum(sizes,target){const nums=sizes.map(s=>[s,parseFloat(String(s).replace(/[^\d.]/g,''))]).filter(x=>isFinite(x[1]));
-  return nums.length?nums.sort((a,b)=>Math.abs(a[1]-target)-Math.abs(b[1]-target))[0][0]:null}
-/* The fit engine speaks S–XXL and "UK 9"; products may list collar (39–44), waist (28–40) or UK7 sizes. */
-function bestSizeFor(p,rec){
+const BESTSIZE=new Map();   // product id -> its own size label the fit engine picked
+function bestSizeFor(p){
   const sizes=p.sizes||[];
   if(!sizes.length)return null;
   if(sizes.length===1)return sizes[0];
-  const want=rec||S.profile.sizes.top;
-  const hit=want&&sizes.find(s=>normSize(s)===normSize(want));if(hit)return hit;
-  const nums=sizes.map(s=>parseFloat(s)).filter(isFinite);
-  if(p.slot==='footwear'&&S.profile.foot){const uk=Math.round(S.profile.foot*1.5-31);  // ~UK from foot length in cm
-    return nearestNum(sizes,sizes.some(s=>/^US/i.test(s))?uk+1:sizes.some(s=>/^EURO?/i.test(s))?uk+33:uk)}
-  if(nums.length===sizes.length&&nums.every(n=>n>=36&&n<=48)&&COLLAR[normSize(want)])return nearestNum(sizes,COLLAR[normSize(want)]);
-  if(nums.length===sizes.length&&nums.every(n=>n>=24&&n<=44)&&S.profile.waist)return nearestNum(sizes,S.profile.waist/2.54);
-  if(want&&SIZE_ORDER.includes(normSize(want))){const w=SIZE_ORDER.indexOf(normSize(want));return [...sizes].filter(s=>SIZE_ORDER.includes(normSize(s))).sort((a,b)=>Math.abs(SIZE_ORDER.indexOf(normSize(a))-w)-Math.abs(SIZE_ORDER.indexOf(normSize(b))-w))[0]||null}
-  return null;
+  return BESTSIZE.get(p.id)||null;
 }
+const NEUTRAL_SET=new Set(['Black','White','Navy Blue','Grey','Beige','Off White','Cream','Charcoal','Tan','Brown','Blue']);
+const USE_OK={Formal:['Formal','Smart Casual'],Sports:['Sports'],Ethnic:['Ethnic','Party'],Party:['Party','Casual','Ethnic']};
 function lookFor(p){
-  const neutral=['Black','White','Navy Blue','Grey','Beige','Off White','Cream','Charcoal','Tan','Brown','Blue'];
-  const want=p.slot==='top'?['bottom','footwear']:p.slot==='bottom'?['top','footwear']:p.slot==='dress'?['footwear','bag','jewellery']:p.slot==='footwear'?['top','bottom']:['top','bottom','footwear'];
-  const out=[];
-  for(const slot of want.concat(['watch','bag','headwear'])){
-    const pick=CAT.filter(x=>x.slot===slot&&(x.audience===p.audience||x.audience==='unisex'||p.audience==='unisex')&&neutral.includes(x.colour)&&x.id!==p.id).sort((a,b)=>(b.ratingTotal||0)-(a.ratingTotal||0))[0];
-    if(pick)out.push(pick);if(out.length>=3)break;
+  const want=p.slot==='top'?['bottom','footwear']:p.slot==='bottom'?['top','footwear']:p.slot==='dress'?['footwear','bag','jewellery']:p.slot==='footwear'?['top','bottom']:p.slot==='outerwear'?['top','bottom','footwear']:['top','bottom','footwear'];
+  const aud=p.audience==='unisex'?audienceOf(S.profile.gender):p.audience;
+  const hh=[...p.id].reduce((a,c)=>(a*31+c.charCodeAt(0))>>>0,7);
+  const okUse=u=>u===p.usage||(USE_OK[p.usage]||['Casual','Smart Casual']).includes(u);
+  const sc=x=>(x.rating||0)*Math.log10((x.ratingTotal||0)+1),out=[];
+  for(const [i,slot] of want.concat(['watch','bag','headwear']).entries()){
+    if(out.length>=3)break;if(slot===p.slot||(slot==='jewellery'&&aud==='men'))continue;
+    const mk=strict=>CAT.filter(x=>x.slot===slot&&x.id!==p.id&&(x.audience===aud||x.audience==='unisex')&&NEUTRAL_SET.has(x.colour)&&x.colour!==p.colour&&(!strict||okUse(x.usage))).sort((a,b)=>sc(b)-sc(a)).slice(0,6);
+    let pool=mk(true);if(!pool.length)pool=mk(false);
+    if(pool.length&&!out.some(o=>o.slot===slot))out.push(pool[(hh+i)%pool.length]);
   }
   return out;
 }
@@ -713,7 +729,7 @@ async function openProduct(id){
     <div class="pd-name">${esc(p.name)}</div>
     <div class="price"><b style="font-size:20px">${inr(p.price)}</b>${off?`<s>MRP ${inr(p.mrp)}</s><em>${off}% off</em>`:''}</div>
     ${p.rating?`<div class="rating">${p.rating} ★ · ${Number(p.ratingTotal).toLocaleString('en-IN')} ratings</div>`:''}
-    ${(p.sizes||[]).length&&!(p.sizes.length===1&&/one\s*size/i.test(p.sizes[0]))?`
+    ${(p.sizes||[]).length>1?`
       <div class="sizes" role="group" aria-label="Size">${p.sizes.map(s=>`<button data-size="${esc(s)}" aria-pressed="${s===pdSize}">${esc(s)}</button>`).join('')}</div>
       <div class="hint" id="pd-sizehint">${pdSize?`${esc(pdSize)} is picked from your measurements.`:'Pick a size.'}</div>`:''}
     <div class="row-actions"><button class="primary" id="pd-bag" data-bag="${p.id}">${S.bag.some(b=>b.id===p.id)?'In your bag':'Add to bag'}</button><button class="secondary" data-save="${p.id}" aria-pressed="${S.saved.has(p.id)}">${S.saved.has(p.id)?'Saved':'Save'}</button></div>
@@ -723,28 +739,21 @@ async function openProduct(id){
     <div class="block"><h3>Colour</h3><div style="display:flex;align-items:center;gap:10px"><span style="width:20px;height:20px;border-radius:50%;border:1px solid var(--line);${swatch(p.colour)}"></span>${esc(p.colour)}${inPal?` · in your ${esc(pal.name)} palette`:pal?' · outside your palette':''}</div></div>
     <div class="block"><h3>Wear it with</h3><div class="look">${lookFor(p).map(x=>`<button data-pd="${x.id}"><img src="${esc(photo(x))}" alt=""><span>${esc(x.name)}</span><span class="hint">${inr(x.price)}</span></button>`).join('')||'<span class="hint">Nothing in the catalogue pairs with this yet.</span>'}</div></div>
     <div class="block"><h3>Details</h3>
-      ${Object.keys(attrs).length?`<dl class="kv">${Object.entries(attrs).map(([a,v])=>`<dt>${esc(a)}</dt><dd>${esc(v)}</dd>`).join('')}<dt>Occasion</dt><dd>${esc(p.usage)}</dd><dt>Season</dt><dd>${esc(p.season)}</dd></dl>`:''}
-      ${p.details?`<p style="margin-top:12px">${esc(p.details)}</p>`:''}</div>
+      <dl class="kv">${Object.entries(attrs).map(([a,v])=>`<dt>${esc(a)}</dt><dd>${esc(v)}</dd>`).join('')}${attrs.Occasion?'':`<dt>Style</dt><dd>${esc(p.usage)}</dd>`}<dt>Season</dt><dd>${esc(p.season)}</dd>${(p.sizes||[]).length===1?`<dt>Size</dt><dd>${esc(p.sizes[0])}</dd>`:''}</dl>
+      ${p.details?`<p style="margin-top:12px;white-space:pre-line">${esc(p.details).replace(/\s(Composition|Fitting|Fit|Wash care|Washcare|Material|Care):/g,'\n$1:')}</p>`:''}</div>
     ${reviews.length?`<div class="block"><h3>Reviews</h3>${reviews.slice(0,4).map(r=>`<div class="review"><div class="stars" aria-label="${r.stars} out of 5">${stars(r.stars)}</div><div>${esc(r.text)}</div></div>`).join('')}
       ${reviews.length>4?`<div id="more-rev" hidden>${reviews.slice(4).map(r=>`<div class="review"><div class="stars" aria-label="${r.stars} out of 5">${stars(r.stars)}</div><div>${esc(r.text)}</div></div>`).join('')}</div><button class="linkish" id="more-rev-btn">Show all ${reviews.length} reviews</button>`:''}</div>`:''}`;
   if(apparel||p.slot==='footwear')checkFit(p);
 }
 function verdictClass(v){v=String(v||'').toLowerCase();return /tight|small|short|loose|large|long/.test(v)?(/very|too/.test(v)?'v-bad':'v-warn'):/good|regular|true|ok|fits/.test(v)?'v-good':''}
-function chartSize(s){ // product size -> the fit engine's chart key
-  if(!s)return null;const n=normSize(s),num=parseFloat(n);
-  if(/^UK\d/.test(n))return 'UK '+n.slice(2);
-  if(/^US\d/.test(n))return 'UK '+(parseFloat(n.slice(2))-1);   // men's US runs one above UK
-  if(isFinite(num)&&num>=36&&num<=48&&String(num)===n){const e=Object.entries(COLLAR).sort((a,b)=>Math.abs(a[1]-num)-Math.abs(b[1]-num))[0];return e[0]}
-  return SIZE_ORDER.includes(n)?n:null;
-}
 async function checkFit(p,size){
   const box=$('pd-fit');if(!box)return;
   try{
-    const r=await api('/api/fit',{sku:p.id,size:chartSize(size||pdSize),profile:bodyProfile(),product:p});
-    if(!size&&!pdSize){const pick=bestSizeFor(p,r.recommended_size||r.size);if(pick){pdSize=pick;document.querySelectorAll('#pd-body [data-size]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.size===pdSize));const h=$('pd-sizehint');if(h)h.textContent=`${pdSize} is picked from your measurements.`}}
+    const r=await api('/api/fit',{sku:p.id,size:size||null,profile:bodyProfile(),product:p});
+    if(!size&&r.size&&(p.sizes||[]).includes(r.size)){BESTSIZE.set(p.id,r.size);
+      if(!pdSize){pdSize=r.size;document.querySelectorAll('#pd-body [data-size]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.size===pdSize));const h=$('pd-sizehint');if(h)h.textContent=`${pdSize} is picked from your measurements.`}}
     const dims=(r.dims||[]).filter(d=>d.verdict&&d.verdict!=='unknown').slice(0,3);
-    const shown=pdSize&&normSize(pdSize)!==normSize(r.size)?`${esc(pdSize)} (${esc(r.size)} on our chart)`:esc(r.size);
-    box.innerHTML=`<div class="fitbox"><div><span class="verdict ${verdictClass(r.overall)}">${esc(r.overall)}</span> at size <b>${shown}</b>${r.recommended_size&&r.recommended_size!==r.size?` · we'd suggest <b>${esc(r.recommended_size)}</b>`:''}</div>
+    box.innerHTML=`<div class="fitbox"><div><span class="verdict ${verdictClass(r.overall)}">${esc(r.overall)}</span> at size <b>${esc(r.size)}</b>${r.recommended_size&&r.recommended_size!==r.size?` · we'd suggest <b>${esc(r.recommended_size)}</b>`:''}</div>
       ${dims.length?`<div class="hint" style="margin-top:6px">${dims.map(d=>`${esc(d.dim)}: ${d.ease_cm===null?'—':(d.ease_cm>0?'+':'')+d.ease_cm+' cm'} (${esc(d.verdict)})`).join(' · ')}</div>`:''}
       <div class="hint" style="margin-top:4px">Confidence ${esc(r.confidence)}. Uses a reference size chart.</div></div>`;
   }catch(e){box.innerHTML=`<span class="hint">Fit check is not available right now.</span>`}
@@ -919,6 +928,7 @@ async function buildRoom(){
     const data=await api('/api/fittingroom',{profile:bodyProfile(),items,photoId:ROOM.photoId||null});
     if(seq!==ROOM.seq)return;
     ROOM.data=data;
+    (data.fitReports||[]).forEach(rep=>{const r=S.room.find(x=>x.id===rep.sku);if(r&&!r.size&&rep.size){r.size=rep.size;BESTSIZE.set(r.id,rep.size)}});save();
     const V=window.SM3D;
     if(!V){$('room-msg').textContent='The 3D viewer did not load. The fit report is on the right.';drawRoomPanel();return}
     if(!ROOM.viewer)ROOM.viewer=new V.Viewer($('room-canvas'));
@@ -979,7 +989,7 @@ async function deriveSizes(){
 }
 
 /* ============================ refresh ============================ */
-function refresh(){drawMe();if(document.body.classList.contains('home'))drawHome();else drawResults()}
+function refresh(){drawMe();if(document.body.classList.contains('home'))drawHome();else if(S.view==='saved')showSaved();else drawResults()}
 
 /* ============================ events ============================ */
 document.addEventListener('click',async e=>{
@@ -1008,7 +1018,7 @@ document.addEventListener('click',async e=>{
   if(d.season){getPalette(d.season);return}
   if(d.unbag){S.bag=S.bag.filter(b=>b.id!==d.unbag);save();drawMe();drawBag();refresh();return}
   if(d.unroom){S.room=S.room.filter(r=>r.id!==d.unroom);save();buildRoom();return}
-  if(d.body){S.profile.gender=d.body;S.profile.sizes={};save();drawMe();buildRoom();deriveSizes();refresh();return}
+  if(d.body){S.profile.gender=d.body;S.profile.sizes={};BESTSIZE.clear();save();drawMe();buildRoom();deriveSizes();resetFilters();refresh();return}
   if(d.view&&ROOM.viewer){const h=(ROOM.data&&ROOM.data.mesh&&ROOM.data.mesh.heightM)||1.75,c=ROOM.viewer.camera,r=h*1.85;
     c.position.set(d.view==='side'?r:0,h*0.62,d.view==='back'?-r:d.view==='side'?0:r);ROOM.viewer.controls.update();return}
   switch(t.id){
@@ -1042,6 +1052,7 @@ document.addEventListener('click',async e=>{
   if(t.closest('#ideas')){$('q').value=t.textContent;search(t.textContent);return}
 });
 function showSaved(){
+  S.view='saved';
   const list=[...S.saved].map(prod).filter(Boolean);
   $('answer').innerHTML='';$('res-head').hidden=false;$('res-title').textContent='Saved';
   $('filters').innerHTML='';$('count').textContent=`${list.length} saved`;$('palette-on').innerHTML='';$('more').hidden=true;
@@ -1053,9 +1064,10 @@ document.addEventListener('change',e=>{
   if(t.id==='room-photo'&&t.files[0]){roomPhoto(t.files[0]);return}
   if(t.dataset.roomsize){const r=S.room.find(x=>x.id===t.dataset.roomsize);if(r){r.size=t.value;save();buildRoom()}return}
   const n=t.name;if(!n||!t.closest('#filters'))return;
+  if(n==='for'&&S.q){search(S.q,t.value);return}     // the server picks gender-appropriate results
   if(n==='for'||n==='price')S.filters[n]=t.value;else S.filters[n]=t.checked;S.shown=24;drawResults();
 });
-$('sort').addEventListener('change',e=>{S.sort=e.target.value;drawResults()});
+$('sort').addEventListener('change',e=>{S.sort=e.target.value;if(S.view!=='saved')drawResults()});
 $('search').addEventListener('submit',e=>{e.preventDefault();search($('q').value)});
 document.querySelectorAll('dialog').forEach(d=>{
   d.addEventListener('click',e=>{if(e.target===d)d.close()});

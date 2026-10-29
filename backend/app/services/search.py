@@ -22,7 +22,7 @@ from dataclasses import dataclass, field, asdict
 from datetime import date
 from typing import Any
 
-from ..catalogue.compat import (for_audience, MONTH_NAMES, METAL_AFFINITY, colours_for_metal,
+from ..catalogue.compat import (_COLOUR_WORDS, COLOUR_FAMILY, for_audience, MONTH_NAMES, METAL_AFFINITY, colours_for_metal,
                                 complement_slots, goes_with_colour, slot_of,
                                 season_for_month, usages_for_occasion,
                                 SLOT_CATEGORIES)
@@ -108,7 +108,7 @@ def _facet_block() -> str:
     return (
         f"categories: {f['categories']}\n"
         f"slots: {f['slots']}\n"
-        f"article types: {f['articleTypes'][:60]}\n"
+        f"article types: {f['articleTypes'][:80]}\n"
         f"colours: {f['colours']}\n"
         f"usages: {f['usages']}\n"
         f"price range in rupees: {f['priceRange']}\n"
@@ -117,30 +117,43 @@ def _facet_block() -> str:
 
 
 # --- deterministic parser (always runs; the model refines it) -------------
+_NUM = r"(?:rs\.?|inr|₹)?\s*(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakh|l)?\b"
+_RANGE = re.compile(r"(?:between|from)\s*" + _NUM + r"\s*(?:-|–|to|and)\s*" + _NUM
+                    + r"|" + _NUM + r"\s*(?:-|–)\s*" + _NUM, re.I)
 _BUDGET = [
-    (re.compile(r"(?:under|below|less than|within|upto|up to|max(?:imum)?)\s*"
-                r"(?:rs\.?|inr|₹)?\s*([\d,]+)\s*(k|thousand)?", re.I), "max"),
-    (re.compile(r"(?:above|over|more than|at ?least|min(?:imum)?)\s*"
-                r"(?:rs\.?|inr|₹)?\s*([\d,]+)\s*(k|thousand)?", re.I), "min"),
-    (re.compile(r"(?:budget(?:\s+of)?|around|about)\s*"
-                r"(?:rs\.?|inr|₹)?\s*([\d,]+)\s*(k|thousand)?", re.I), "max"),
-    (re.compile(r"₹\s*([\d,]+)\s*(k|thousand)?", re.I), "max"),
+    (re.compile(r"(?:under|below|less than|within|upto|up to|max(?:imum)?)\s*" + _NUM, re.I), "max"),
+    (re.compile(r"(?:above|over|more than|at ?least|min(?:imum)?)\s*" + _NUM, re.I), "min"),
+    (re.compile(r"(?:budget(?:\s+of)?|around|about)\s*" + _NUM, re.I), "max"),
+    (re.compile(r"₹\s*(\d[\d,]*(?:\.\d+)?)\s*(k|thousand|lakh|l)?\b", re.I), "max"),
 ]
+_CHEAP = re.compile(r"\b(cheap|cheapest|affordable|inexpensive|budget[- ]friendly)\b", re.I)
+_NEG = re.compile(r"\b(?:not|no|without|except|other than|non|avoid)[\s-]+(?:a |any |in )?$", re.I)
+# Shopper wording -> one form the parser and the index both use.
+_NORMALISE = [(re.compile(r"\bt[\s-]*shirts?\b|\btees?\b"), "tshirts"),
+              (re.compile(r"\bduffle\b"), "duffel"), (re.compile(r"\bsari\b"), "saree")]
+_SEASON_WORDS = {"winter": "Winter", "summer": "Summer", "monsoon": "Summer",
+                 "rainy": "Summer", "spring": "Spring", "autumn": "Fall", "fall": "Fall"}
+_CATEGORY_WORDS = {"ethnic": "ethnic", "traditional": "ethnic", "western": "western",
+                   "footwear": "footwear", "accessories": "accessories",
+                   "accessory": "accessories", "sportswear": "sports", "activewear": "sports"}
 _PAIR = re.compile(
     r"(?:goes?|go|going|look)[a-z ]*?\s(?:good|well|nice|great)?\s*"
     r"(?:with|on|over|under)\s+(?:my |a |an |the |some )?([a-z \-]{2,40})"
     r"|(?:to (?:wear|go) with|pair(?:s|ed)? with|match(?:es|ing)? (?:my |a |the )?)"
     r"\s*(?:my |a |an |the |some )?([a-z \-]{2,40})", re.I)
-_WOMEN = re.compile(r"\b(women|woman|female|ladies|girl|her|sister|wife|mom|"
+_WOMEN = re.compile(r"\b(women'?s?|woman|female|ladies|girls?|her|sister|wife|mom|"
                     r"mother|daughter|she)\b", re.I)
-_MEN = re.compile(r"\b(men|man|male|gents|boy|him|brother|husband|dad|father|"
+_MEN = re.compile(r"\b(men'?s?|man|male|gents|boys?|him|brother|husband|dad|father|"
                   r"son|he)\b", re.I)
 
 
-def _money(m: re.Match) -> float:
-    v = float(m.group(1).replace(",", ""))
-    if m.group(2):
+def _money(m: re.Match, g: int = 1) -> float:
+    v = float(m.group(g).replace(",", ""))
+    unit = (m.group(g + 1) or "").lower()
+    if unit in ("k", "thousand"):
         v *= 1000
+    elif unit in ("lakh", "l"):
+        v *= 100000
     return v
 
 
@@ -157,7 +170,15 @@ _PAIR_VERB = re.compile(
 def parse_rules(text: str) -> QuerySpec:
     spec = QuerySpec(raw=text, source="rules")
     low = (text or "").lower()
+    for rx, repl in _NORMALISE:
+        low = rx.sub(repl, low)
 
+    rng = _RANGE.search(text or "")
+    if rng:
+        g = 1 if rng.group(1) else 5
+        a, b = _money(rng, g), _money(rng, g + 2)
+        if 0 < a < b:
+            spec.budget_min, spec.budget_max = a, b
     for rx, which in _BUDGET:
         m = rx.search(text or "")
         if m:
@@ -166,6 +187,15 @@ def parse_rules(text: str) -> QuerySpec:
                 spec.budget_max = v
             elif which == "min" and spec.budget_min is None:
                 spec.budget_min = v
+    if spec.budget_max is None and _CHEAP.search(low):
+        spec.budget_max = 1000.0
+    for word, season in _SEASON_WORDS.items():
+        if re.search(rf"\b{word}\b", low):
+            spec.season = season
+            break
+    for word, cat in _CATEGORY_WORDS.items():
+        if re.search(rf"\b{word}\b", low) and cat not in spec.categories:
+            spec.categories.append(cat)
 
     for name, num in MONTH_NAMES.items():
         if re.search(rf"\b{name}\b", low):
@@ -215,12 +245,33 @@ def parse_rules(text: str) -> QuerySpec:
                     break
 
     facets = catalogue.facets()
-    for colour in facets["colours"]:
-        if re.search(rf"\b{re.escape(colour.lower())}\b", low):
-            if not (spec.pair_anchor and colour.lower() in spec.pair_anchor):
-                spec.colours.append(colour)
+    # Colours: longest phrase first ("navy blue" before "blue"), shopper words
+    # mapped to catalogue names (wine, off-white, multicolour), and a colour
+    # after "not/no/without" is excluded rather than wanted.
+    have = set(facets["colours"])
+    words = sorted({**{c.lower(): c for c in have}, **dict(_COLOUR_WORDS),
+                    "multicolour": "Multi", "multicolor": "Multi", "multi colour": "Multi",
+                    "wine": "Maroon", "off white": "Off White"}.items(), key=lambda kv: -len(kv[0]))
+    plain = low.replace("-", " ")
+    taken: list[tuple[int, int]] = []
+    for phrase, canon in words:
+        for m in re.finditer(rf"\b{re.escape(phrase)}\b", plain):
+            if any(a < m.end() and m.start() < b for a, b in taken):
+                continue
+            taken.append((m.start(), m.end()))
+            if canon not in have or (spec.pair_anchor and phrase in spec.pair_anchor):
+                continue
+            if _NEG.search(plain[:m.start()]):
+                if canon not in spec.exclude_colours:
+                    spec.exclude_colours.append(canon)
+            elif canon not in spec.colours:
+                spec.colours.append(canon)
     for at in facets["articleTypes"]:
-        if re.search(rf"\b{re.escape(at.lower())}s?\b", low):
+        a = at.lower()
+        base = re.sub(r"(ss|ch|sh|x)es$", r"\1", a)
+        if base == a and a.endswith("s") and not a.endswith("ss"):
+            base = a[:-1]
+        if re.search(rf"\b{re.escape(base)}(?:e?s)?\b", low):     # "kurta" -> Kurtas, "dress" -> Dresses
             if not (spec.pair_anchor and at.lower() in spec.pair_anchor):
                 spec.article_types.append(at)
 
@@ -229,7 +280,10 @@ def parse_rules(text: str) -> QuerySpec:
             "that", "goes", "good", "well", "looking", "would", "is", "it",
             "this", "of", "please", "give", "show", "find", "buy", "get",
             "wear", "wearing", "go", "going", "match", "matches", "pair",
-            "paired", "nice", "great", "which", "anything", "budget"}
+            "paired", "nice", "great", "which", "anything", "budget",
+            "men", "women", "mens", "womens", "man", "woman", "ladies", "gents",
+            "girl", "boy", "unisex", "not", "without", "but", "except", "between",
+            "cheap", "affordable", "outfit"}
     # Words belonging to the thing they ALREADY own are not search terms.
     # Without this, "goes with silver jewellery" retrieves silver clothing.
     anchor_tokens = set(tokenise(spec.pair_anchor or ""))
@@ -240,7 +294,13 @@ def parse_rules(text: str) -> QuerySpec:
     # come back as a skirt, however well the skirt scores on occasion.
     SLOT_NOUNS = {
         "dress": "dress", "gown": "dress", "saree": "dress", "lehenga": "dress",
-        "shirt": "top", "tshirt": "top", "t-shirt": "top", "top": "top",
+        "shirt": "top", "tshirt": "top", "t-shirt": "top", "top": "top", "hoodie": "top",
+        "sweatshirt": "top", "tunic": "top", "chinos": "bottom", "jogger": "bottom",
+        "capri": "bottom", "sunglass": "eyewear", "sunglasses": "eyewear",
+        "cap": "headwear", "hat": "headwear", "clutch": "bag", "backpack": "bag",
+        "duffel": "bag", "wallet": "bag", "jewellery": "jewellery", "jewelry": "jewellery",
+        "bracelet": "jewellery", "pendant": "jewellery", "flip flop": "footwear",
+        "loafer": "footwear", "boot": "footwear", "flats": "footwear",
         "kurta": "top", "kurti": "top", "blouse": "top", "sweater": "top",
         "jeans": "bottom", "trouser": "bottom", "pant": "bottom",
         "skirt": "bottom", "shorts": "bottom", "legging": "bottom",
@@ -257,7 +317,7 @@ def parse_rules(text: str) -> QuerySpec:
                     continue          # that is the anchor, not the target
                 spec.slots.append(slot)
         spec.slots = sorted(set(spec.slots))
-    spec.season = season_for_month(spec.month)
+    spec.season = season_for_month(spec.month) or spec.season
     return spec
 
 
@@ -393,7 +453,8 @@ def _fallback_answer(spec: QuerySpec, results: list[dict]) -> str:
         bits.append(f"The {top.get('name')} in {top.get('colour')} is the "
                     f"closest match")
     if spec.occasion:
-        bits.append(f"and reads right for a {spec.occasion}")
+        art = "an" if spec.occasion[:1].lower() in "aeiou" else "a"
+        bits.append(f"and reads right for {art} {spec.occasion}")
     if spec.budget_max:
         bits.append(f"at Rs {int(top.get('price') or 0)}, inside your "
                     f"Rs {int(spec.budget_max)} budget")
@@ -401,8 +462,9 @@ def _fallback_answer(spec: QuerySpec, results: list[dict]) -> str:
     if len(results) > 1:
         second = results[1]
         out += (f" If you want a second option, the {second.get('name')} in "
-                f"{second.get('colour')} is the same idea in another colour.")
-    out += (" Connect a model under Agent model for a fuller styling answer.")
+                f"{second.get('colour')} is "
+                + ("the same idea in another colour." if second.get("colour") != top.get("colour")
+                   else "a close alternative."))
     return out
 
 
@@ -455,6 +517,11 @@ def search(text: str, *, limit: int = 24, use_model: bool = True,
     slots = _allowed_slots(spec)
     if slots:
         keep = [i for i in idx if rows[i]["slot"] in slots]
+        # A slot the shop carries but the budget/audience rules out means
+        # "nothing", not "show other things": "watch under 500" used to come
+        # back as 60 stoles and caps.
+        if not keep and any(r["slot"] in slots for r in rows):
+            idx = []
         if keep:
             idx = keep
             if spec.intent == "pair" and spec.pair_anchor:
@@ -465,7 +532,11 @@ def search(text: str, *, limit: int = 24, use_model: bool = True,
             else:
                 applied.append("slots: " + ", ".join(sorted(slots)))
 
-    if spec.categories:
+    if spec.article_types:
+        keep = [i for i in idx if rows[i]["articleType"] in spec.article_types]
+        if keep:
+            idx = keep
+    if spec.categories and spec.intent != "pair":
         keep = [i for i in idx if rows[i]["cat"] in spec.categories]
         if keep:
             idx, _ = keep, applied.append("categories: " + ", ".join(spec.categories))
@@ -479,6 +550,8 @@ def search(text: str, *, limit: int = 24, use_model: bool = True,
                 + ", ".join(want_colours[:6]))
     if spec.exclude_colours:
         ex = {c.lower() for c in spec.exclude_colours}
+        for c in list(ex):                 # "not blue" also rules out navy and sky blue
+            ex |= {m.lower() for m in COLOUR_FAMILY.get(c, set())}
         idx = [i for i in idx if (rows[i]["colour"] or "").lower() not in ex]
         applied.append("excluding " + ", ".join(spec.exclude_colours))
 
@@ -511,9 +584,11 @@ def search(text: str, *, limit: int = 24, use_model: bool = True,
             if aff >= 0.8:
                 why.append(f"{r['colour']} sits well with {spec.pair_colour}")
 
+        if spec.audience and r["audience"] == spec.audience:
+            s += 0.4                      # their own section first, unisex after
         if usages and r["usage"]:
             if r["usage"] in usages:
-                s += 2.0
+                s += 2.0 if r["usage"] != "Casual" else 1.0
                 why.append(f"{r['usage']} pieces suit a {spec.occasion}")
             else:
                 s -= 0.5
@@ -551,14 +626,30 @@ def search(text: str, *, limit: int = 24, use_model: bool = True,
                     why.append(f"{r['colour']} is easy to pair")
             if r["usage"] in ("Party", "Formal", "Smart Casual"):
                 s += 0.3
-        scored.append((s, i, why))
+        matched = (lex > 0 or r["articleType"] in spec.article_types
+                   or (slots and r["slot"] in slots) or (want_colours and colour in want_colours)
+                   or (usages and r["usage"] in usages and r["usage"] != "Casual"))
+        scored.append((s, i, why, matched))
 
+    # Words that match nothing in the shop must not come back as random
+    # products the answer then calls "the closest match" ("sherwani", "tee").
+    if query_text.strip() and not spec.pair_anchor:
+        scored = [x for x in scored if x[3]]
     # Tie-break on catalogue order, not price: sorting ties by price pushed the
     # cheapest row of every group to the top regardless of relevance.
     scored.sort(key=lambda t: (-t[0], t[1]))
+    seen, uniq = set(), []
+    for x in scored:                      # same name, colour and price = same card
+        r = rows[x[1]]
+        key = ((r["name"] or "").lower(), r["colour"], r["price"], r["audience"])
+        if key not in seen:
+            seen.add(key)
+            uniq.append(x)
+    scored = uniq
+    idx = [x[1] for x in scored]
     top = scored[:limit]
     results = []
-    for s, i, why in top:
+    for s, i, why, _m in top:
         r = dict(rows[i])
         raw = r.pop("raw", None)
         try:

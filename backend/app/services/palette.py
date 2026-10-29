@@ -49,8 +49,8 @@ SEASONS: dict[str, Season] = {
         "light_spring", "Light Spring", "Spring", "warm", "light",
         "Warm but delicate. Clear, light colours with a touch of warmth lift "
         "you; anything heavy or muddy wears you instead.",
-        ["Peach", "Coral", "Turquoise Blue", "Sea Green", "Pink", "Yellow",
-         "Lavender", "Aqua", "Blue", "Mint Green", "Rose", "Nude"],
+        ["Peach", "Peach", "Turquoise Blue", "Sea Green", "Pink", "Yellow",
+         "Lavender", "Turquoise Blue", "Blue", "Sea Green", "Pink", "Nude"],
         ["Cream", "Off White", "Beige", "Tan", "Grey Melange"],
         ["gold", "rose gold"],
         ["Black", "Charcoal", "Maroon", "Coffee Brown"]),
@@ -58,26 +58,26 @@ SEASONS: dict[str, Season] = {
         "warm_spring", "Warm Spring", "Spring", "warm", "medium",
         "Golden and clear. Colours with sunlight in them - coral, tangerine, "
         "warm greens - look alive on you.",
-        ["Coral", "Orange", "Yellow", "Mustard", "Sea Green", "Turquoise Blue",
+        ["Peach", "Orange", "Yellow", "Mustard", "Sea Green", "Turquoise Blue",
          "Green", "Peach", "Gold", "Rust", "Teal", "Red"],
-        ["Ivory", "Cream", "Beige", "Camel", "Tan", "Khaki"],
+        ["Cream", "Cream", "Beige", "Tan", "Tan", "Khaki"],
         ["gold"],
-        ["Black", "Silver", "Grey", "Mauve"]),
+        ["Black", "Silver", "Grey", "Lavender"]),
     "bright_spring": Season(
         "bright_spring", "Bright Spring", "Spring", "warm", "medium",
         "High contrast and warm. Clear, saturated colour suits you; anything "
         "dusty or greyed goes flat.",
-        ["Red", "Turquoise Blue", "Magenta", "Blue", "Green", "Coral",
+        ["Red", "Turquoise Blue", "Magenta", "Blue", "Green", "Peach",
          "Yellow", "Purple", "Teal", "Orange", "Pink"],
         ["White", "Off White", "Navy Blue", "Grey"],
         ["gold", "silver"],
-        ["Beige", "Khaki", "Mauve", "Grey Melange"]),
+        ["Beige", "Khaki", "Lavender", "Grey Melange"]),
     "light_summer": Season(
         "light_summer", "Light Summer", "Summer", "cool", "light",
         "Cool and soft. Light, slightly powdery colours - cornflower, rose, "
         "lavender - sit well against your skin.",
-        ["Lavender", "Pink", "Blue", "Sea Green", "Turquoise Blue", "Mauve",
-         "Rose", "Purple", "Mint Green", "Peach", "Grey"],
+        ["Lavender", "Pink", "Blue", "Sea Green", "Turquoise Blue", "Lavender",
+         "Pink", "Purple", "Sea Green", "Peach", "Grey"],
         ["Off White", "Grey Melange", "Silver", "Steel", "Navy Blue"],
         ["silver", "white gold", "platinum"],
         ["Orange", "Mustard", "Rust", "Coffee Brown"]),
@@ -85,8 +85,8 @@ SEASONS: dict[str, Season] = {
         "cool_summer", "Cool Summer", "Summer", "cool", "medium",
         "Properly cool. Navy, rose, raspberry and emerald read clean on you; "
         "warm earth tones pull you down.",
-        ["Navy Blue", "Blue", "Pink", "Rose", "Magenta", "Purple", "Teal",
-         "Sea Green", "Green", "Burgundy", "Lavender", "Grey"],
+        ["Navy Blue", "Blue", "Pink", "Pink", "Magenta", "Purple", "Teal",
+         "Sea Green", "Green", "Maroon", "Lavender", "Grey"],
         ["Off White", "Grey", "Charcoal", "Steel", "Silver"],
         ["silver", "platinum", "white gold"],
         ["Orange", "Mustard", "Gold", "Rust", "Khaki"]),
@@ -94,7 +94,7 @@ SEASONS: dict[str, Season] = {
         "soft_summer", "Soft Summer", "Summer", "neutral", "medium",
         "Muted and cool-leaning. Softened colours flatter you; anything "
         "neon or stark competes with your face.",
-        ["Mauve", "Rose", "Sea Green", "Teal", "Blue", "Burgundy", "Olive",
+        ["Lavender", "Pink", "Sea Green", "Teal", "Blue", "Maroon", "Olive",
          "Grey", "Lavender", "Pink", "Purple"],
         ["Grey Melange", "Off White", "Charcoal", "Taupe", "Navy Blue"],
         ["silver", "rose gold"],
@@ -103,8 +103,8 @@ SEASONS: dict[str, Season] = {
         "soft_autumn", "Soft Autumn", "Autumn", "neutral", "medium",
         "Warm but gentle. Muted earth colours - sage, old gold, light olive - "
         "suit you better than anything bright.",
-        ["Olive", "Khaki", "Beige", "Peach", "Sea Green", "Teal", "Coral",
-         "Mustard", "Rose", "Tan", "Green", "Brown"],
+        ["Olive", "Khaki", "Beige", "Peach", "Sea Green", "Teal", "Peach",
+         "Mustard", "Pink", "Tan", "Green", "Brown"],
         ["Cream", "Off White", "Beige", "Taupe", "Grey Melange"],
         ["gold", "rose gold", "bronze"],
         ["Black", "Magenta", "Turquoise Blue", "Silver"]),
@@ -112,9 +112,9 @@ SEASONS: dict[str, Season] = {
         "warm_autumn", "Warm Autumn", "Autumn", "warm", "medium",
         "Golden and earthy. Rust, saffron, olive and warm reds are your "
         "strongest colours.",
-        ["Rust", "Mustard", "Olive", "Orange", "Brown", "Coral", "Green",
+        ["Rust", "Mustard", "Olive", "Orange", "Brown", "Peach", "Green",
          "Teal", "Maroon", "Gold", "Khaki", "Red"],
-        ["Cream", "Beige", "Camel", "Tan", "Coffee Brown"],
+        ["Cream", "Beige", "Tan", "Tan", "Coffee Brown"],
         ["gold", "bronze", "copper"],
         ["Silver", "Pink", "Lavender", "Grey"]),
     "deep_autumn": Season(
@@ -122,15 +122,15 @@ SEASONS: dict[str, Season] = {
         "Warm and rich. Deep, saturated earth colours - forest, true red, "
         "dark olive, chocolate - have the weight to match your colouring.",
         ["Maroon", "Rust", "Olive", "Coffee Brown", "Brown", "Red", "Teal",
-         "Mustard", "Green", "Burgundy", "Gold", "Tan"],
+         "Mustard", "Green", "Maroon", "Gold", "Tan"],
         ["Cream", "Off White", "Beige", "Khaki", "Charcoal"],
         ["gold", "bronze", "copper"],
-        ["Pastel Pink", "Lavender", "Silver", "Grey Melange"]),
+        ["Pink", "Lavender", "Silver", "Grey Melange"]),
     "deep_winter": Season(
         "deep_winter", "Deep Winter", "Winter", "cool", "deep",
         "Cool and deep. High contrast suits you - true white against black, "
         "emerald, sapphire, cherry.",
-        ["Black", "Navy Blue", "Burgundy", "Magenta", "Purple", "Green",
+        ["Black", "Navy Blue", "Maroon", "Magenta", "Purple", "Green",
          "Blue", "Red", "Teal", "Maroon", "Charcoal"],
         ["White", "Off White", "Charcoal", "Grey", "Silver"],
         ["silver", "platinum", "white gold"],
@@ -140,7 +140,7 @@ SEASONS: dict[str, Season] = {
         "Icy and clear. Emerald, cobalt, fuchsia and cool ruby are yours; "
         "warm or muted colours look dusty on you.",
         ["Navy Blue", "Blue", "Magenta", "Purple", "Green", "Red", "Pink",
-         "Teal", "Burgundy", "Black", "Turquoise Blue"],
+         "Teal", "Maroon", "Black", "Turquoise Blue"],
         ["White", "Off White", "Grey", "Charcoal", "Silver"],
         ["silver", "platinum", "white gold"],
         ["Orange", "Mustard", "Rust", "Khaki", "Gold"]),
@@ -187,6 +187,15 @@ _NEIGHBOURS = {
 }
 
 
+# Catalogue v2 has no Coral, Rose, Burgundy, Mint Green, Aqua, Ivory, Camel or
+# Mauve, so those were renamed to the nearest catalogue colour; drop the
+# repeats that renaming creates, keeping the order (best first).
+for _s in SEASONS.values():
+    _s.colours[:] = list(dict.fromkeys(_s.colours))
+    _s.neutrals[:] = [c for c in dict.fromkeys(_s.neutrals) if c not in _s.colours]
+    _s.avoid[:] = [c for c in dict.fromkeys(_s.avoid) if c not in _s.colours and c not in _s.neutrals]
+
+
 def season_for(undertone: str, depth: str) -> Season:
     u = (undertone or "neutral").strip().lower()
     d = (depth or "medium").strip().lower()
@@ -226,9 +235,7 @@ def recommend(undertone: str, depth: str, *, season_key: str | None = None,
         for i, r in enumerate(catalogue.rows):
             if r["slot"] != slot:
                 continue
-            if cats and r["cat"] not in cats:
-                continue
-            if not for_audience(r["audience"], audience):     # plus unisex
+            if not for_audience(r["audience"], audience if audience in ("women", "men") else None):
                 continue
             if budget_max is not None and (r["price"] or 0) > budget_max:
                 continue

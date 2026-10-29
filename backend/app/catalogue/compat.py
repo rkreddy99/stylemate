@@ -71,7 +71,7 @@ SLOT_KEYWORDS = {
     "watch": ["watch", "smartwatch"],
     "eyewear": ["sunglass", "eyewear", "spectacle", "frame"],
     "belt": ["belt"],
-    "headwear": ["cap", "hat", "turban", "headband", "scarf", "stole"],
+    "headwear": ["cap", "hat", "turban", "headband", "scarf", "scarves", "stole"],
     "beauty": ["lipstick", "foundation", "kajal", "perfume", "fragrance",
                "nail", "serum", "cream", "lotion", "shampoo", "kohl",
                "mascara", "eyeliner", "compact", "deodorant"],
@@ -109,11 +109,14 @@ OCCASION_USAGE = {
     "gym": ["Sports"], "workout": ["Sports"], "running": ["Sports"],
     "yoga": ["Sports"], "travel": ["Casual", "Sports"],
     "beach": ["Casual"], "holiday": ["Casual"],
+    "formal": ["Formal"], "sports": ["Sports"], "sport": ["Sports"],
+    "ethnic": ["Ethnic"], "traditional": ["Ethnic"], "festive": ["Ethnic", "Party"],
+    "smart casual": ["Smart Casual", "Casual"],
 }
 
 MONTH_SEASON = {
     1: "Winter", 2: "Winter", 3: "Spring", 4: "Summer", 5: "Summer",
-    6: "Summer", 7: "Monsoon", 8: "Monsoon", 9: "Fall", 10: "Fall",
+    6: "Summer", 7: "Summer", 8: "Summer", 9: "Fall", 10: "Fall",
     11: "Winter", 12: "Winter",
 }
 MONTH_NAMES = {
@@ -190,13 +193,19 @@ def colour_closeness(want: str | None, have: str | None) -> float:
 
 
 def slot_of(article_type: str, name: str = "", category: str = "") -> str | None:
-    hay = f"{article_type} {name} {category}".lower()
-    best = None
-    for slot, kws in SLOT_KEYWORDS.items():
-        for kw in kws:
-            if kw in hay and (best is None or len(kw) > best[0]):
-                best = (len(kw), slot)
-    return best[1] if best else None
+    import re
+    # The article type decides first ("Kurta Sets" named "Churidar Kurta with
+    # Dupatta" is a top), the name only when the type says nothing. Whole
+    # words only: "laptop" is not a top, "earrings" is not a ring.
+    for hay in (str(article_type or "").lower(), f"{name} {category}".lower()):
+        best = None
+        for slot, kws in SLOT_KEYWORDS.items():
+            for kw in kws:
+                if re.search(rf"\b{re.escape(kw)}(?:e?s)?\b", hay) and (best is None or len(kw) > best[0]):
+                    best = (len(kw), slot)
+        if best:
+            return best[1]
+    return None
 
 
 def colours_for_metal(metal: str) -> list[str]:
@@ -254,4 +263,4 @@ def for_audience(row_audience: str, want: str | None) -> bool:
     catalogue v2 carries Myntra's own gender, and most bags, watches and shoes
     there are unisex, so an exact match hid them from every men's or women's
     shopper (a men's search for a navy duffle bag found none of 30)."""
-    return not want or row_audience in (want, "unisex")
+    return not want or want == "unisex" or row_audience in (want, "unisex")

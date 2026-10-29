@@ -46,10 +46,10 @@ FAMILY_KEYWORDS: list[tuple[str, str]] = [
     ("saree", None), ("dupatta", None), ("stole", None), ("scarf", None),
     ("jacket", "outer"), ("blazer", "outer"), ("coat", "outer"),
     ("sweater", "outer"), ("sweatshirt", "outer"), ("hoodie", "outer"),
-    ("cardigan", "outer"), ("waistcoat", "outer"), ("nehru", "outer"),
+    ("cardigan", "outer"), ("shrug", "outer"), ("waistcoat", "outer"), ("nehru", "outer"),
     ("jean", "bottom"), ("trouser", "bottom"), ("pant", "bottom"),
     ("chino", "bottom"), ("cargo", "bottom"), ("jogger", "bottom"),
-    ("legging", "bottom"), ("churidar", "bottom"), ("salwar", "bottom"),
+    ("legging", "bottom"), ("jegging", "bottom"), ("capri", "bottom"), ("churidar", "bottom"), ("salwar", "bottom"),
     ("pyjama", "bottom"), ("track pant", "bottom"), ("short", "bottom"),
     ("skirt", "skirt"), ("palazzo", "bottom"), ("dhoti", "bottom"),
     ("shoe", "shoe"), ("sneaker", "shoe"), ("sandal", "shoe"),
@@ -114,10 +114,12 @@ def family_for(article_type: str, name: str = "", category: str = "") -> str | N
     # lead with the primary piece, so "Kurta & Trouser Set" is a kurta; a
     # longest-match-wins rule called it a trouser.
     best: tuple[int, int, str | None] | None = None
+    import re
     for kw, fam in FAMILY_KEYWORDS:
-        at = hay.find(kw)
-        if at < 0:
+        m = re.search(rf"\b{re.escape(kw)}", hay)     # word start: "laptop" is no top
+        if not m:
             continue
+        at = m.start()
         cand = (at, -len(kw), fam)
         if best is None or cand[:2] < best[:2]:
             best = cand
