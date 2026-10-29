@@ -359,6 +359,13 @@ _tee=_B3.shell_for(_bm,{"articleType":"Tshirts","name":"Tee","attrs":{"Sleeve Le
 _long=_B3.shell_for(_bm,{"articleType":"Shirts","name":"Shirt","attrs":{"Sleeve Length":"Long Sleeves"}},"M")
 _vest=_B3.shell_for(_bm,{"articleType":"Tops","name":"Top","attrs":{"Sleeve Length":"Sleeveless"}},"M")
 ok(len(_long["positions"])>len(_tee["positions"])>len(_vest["positions"]), "long sleeves > short sleeves > sleeveless")
+# Regression: a T-shirt tail below the hips used to flare into a ring ~7 cm proud of the body
+# (radius interpolated across the straight front edge of the two-thigh hull).
+_bmm=_B3.build_body(A.resolve_measurements({"gender":"male"})[0])
+_P=np.array(_B3.shell_for(_bmm,{"articleType":"Tshirts","name":"Tee","attrs":{"Sleeve Length":"Short Sleeves"}},"L")["positions"]).reshape(-1,3)
+def _front(y): _b=_P[(np.abs(_P[:,1]-y)<0.015)&(np.abs(_P[:,0])<0.12)]; return _b[:,2].max()
+_below,_hem=_front(_bmm.lm["hip_y"]-0.03),_front(_P[:,1].min()+0.01)
+ok(_hem<=_below+0.005, f"T-shirt hem does not flare past the hips ({(_hem-_below)*100:+.1f} cm)")
 
 print(f"\n{'='*52}\n{P} passed, {Fl} failed\n{'='*52}")
 sys.exit(1 if Fl else 0)

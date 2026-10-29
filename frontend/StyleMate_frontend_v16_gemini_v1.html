@@ -1122,10 +1122,11 @@ class Viewer{
   _loop(){this.controls.update();this.renderer.render(this.scene,this.camera);requestAnimationFrame(this._loop)}
   static geom(pos,idx){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
   setBody(mesh,skin){
-    [this.body,this.hair].forEach(o=>{if(o){this.scene.remove(o);o.geometry.dispose();o.material.dispose()}});this.hair=null;
+    [this.body,this.hair,this.base].forEach(o=>{if(o){this.scene.remove(o);o.geometry.dispose();o.material.dispose()}});this.hair=this.base=null;
     const col=skin?new THREE.Color(skin[0]/255,skin[1]/255,skin[2]/255):new THREE.Color(0xd8b79a);
     this.body=new THREE.Mesh(Viewer.geom(mesh.positions,mesh.indices),new THREE.MeshStandardMaterial({color:col,roughness:0.78,metalness:0.02}));
     this.body.castShadow=true;this.body.receiveShadow=true;this.scene.add(this.body);
+    if(mesh.base&&mesh.base.positions.length){this.base=new THREE.Mesh(Viewer.geom(mesh.base.positions,mesh.base.indices),new THREE.MeshStandardMaterial({color:0x5c5752,roughness:0.9,metalness:0,side:THREE.DoubleSide}));this.scene.add(this.base)}
     if(mesh.hair&&mesh.hair.positions.length){this.hair=new THREE.Mesh(Viewer.geom(mesh.hair.positions,mesh.hair.indices),new THREE.MeshStandardMaterial({color:0x2b211c,roughness:0.95,metalness:0}));this.hair.castShadow=true;this.scene.add(this.hair)}
     const h=mesh.heightM||1.7;this.camera.position.set(0,h*0.62,h*1.85);this.controls.target.set(0,h*0.55,0);this.controls.update();
   }

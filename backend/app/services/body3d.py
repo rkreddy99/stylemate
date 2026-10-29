@@ -240,7 +240,7 @@ def mesh_payload(b: Body) -> dict:
         "indices": F.reshape(-1).tolist(),
         "vertexCount": int(len(V)), "triangleCount": int(len(F)),
         "heightM": round(float(V[:, 1].max()), 4), "gender": b.gender,
-        "model": "anny", "hair": _hair(b),
+        "model": "anny", "hair": _hair(b), "base": _base_layer(b),
         "girthsCm": {k: round(v * 100, 1) for k, v in (
             ("chest", b.girth_trunk(b.lm["chest_y"])), ("waist", b.girth_trunk(b.lm["waist_y"])),
             ("hips", b.girth_trunk(b.lm["hip_y"])), ("thigh", b.girth_leg(b.lm["thigh_y"])))},
@@ -288,6 +288,23 @@ def _hair(b: Body) -> dict:
     off = np.full(len(b.V), 0.006 if b.gender == "male" else 0.012)
     P, I = _subset(b, keep, off)
     return {"positions": np.round(P, 4).reshape(-1).tolist(), "indices": I.reshape(-1).tolist()}
+
+
+def _base_layer(b: Body) -> dict:
+    """Plain underwear, so an empty fitting room never shows a bare body.
+    It sits just off the skin, under every garment."""
+    V, lm = b.V, b.lm
+    y = V[:, 1]
+    aw, lw = b.s["arm_w"], b.s["leg_w"]
+    off = np.full(len(V), 0.0015)
+    parts = [_subset(b, (aw < 0.5) & (y <= lm["hip_y"] + 0.05) & (y >= lm["crotch"] - 0.045), off,
+                     _clip_y(lm["crotch"] - 0.045, lm["hip_y"] + 0.05))]
+    if b.gender == "female":
+        lo, hi = lm["chest_y"] - 0.06, lm["chest_y"] + 0.045
+        parts.append(_subset(b, (aw < 0.5) & (y >= lo) & (y <= hi), off, _clip_y(lo, hi),
+                             drop=aw >= 0.5))
+    P, I = _join(parts)
+    return {"positions": P, "indices": I}
 
 
 def _sleeve_cm(product: dict, family: str, chart_sleeve) -> float:
@@ -352,7 +369,7 @@ def _offset_from(G: np.ndarray, C: np.ndarray, floor: float) -> np.ndarray:
 
 
 def _skirt(b: Body, y_top: float, y_hem: float, girth_top: float, flare: float,
-           floor: float) -> tuple[np.ndarray, np.ndarray]:
+           floor: float, start: np.ndarray | None = None) -> tuple[np.ndarray, np.ndarray]:
     """A hanging tube from y_top to y_hem around everything but the arms."""
     E = b.s["E_trunk"]
     seg = 64
@@ -369,6 +386,12 @@ def _skirt(b: Body, y_top: float, y_hem: float, girth_top: float, flare: float,
         if h is None:
             continue
         prev_h = h
+        # Densify the hull before going polar: interpolating radius by angle across a
+        # long straight edge (the front of two thighs) bulges outward by several cm.
+        nxt = np.roll(h, -1, axis=0)
+        steps = np.maximum(1, (np.linalg.norm(nxt - h, axis=1) / 0.005).astype(int))
+        h = np.concatenate([h[i] + (nxt[i] - h[i]) * np.linspace(0, 1, n, endpoint=False)[:, None]
+                            for i, n in enumerate(steps)])
         a = np.arctan2(h[:, 1] - c[1], h[:, 0] - c[0])
         r = np.hypot(h[:, 0] - c[0], h[:, 1] - c[1])
         o = np.argsort(a)
@@ -376,11 +399,22 @@ def _skirt(b: Body, y_top: float, y_hem: float, girth_top: float, flare: float,
         rr = np.interp(ang, np.concatenate([a - TWO_PI, a, a + TWO_PI]), np.tile(r, 3))
         frac = (y_top - y) / max(1e-6, y_top - y_hem)
         G = girth_top * (1 + flare * frac)
-        C = TWO_PI * rr.mean()
-        rr = rr + max(floor, (G - C) / TWO_PI)
-        if prev is not None:
-            rr = np.maximum(rr, prev[1])          # cloth hangs; it never tucks in
-        prev = (c, rr)
+        if prev is None:
+            # Top ring: the body plus the room the chart leaves (tape girth, as elsewhere).
+            rr = rr + max(floor, (G - _girth(prev_h)) / TWO_PI)
+            if start is not None and len(start) >= 3:
+                # Begin from the bodice's own bottom edge so the two parts meet without a step.
+                sa = np.arctan2(start[:, 1] - c[1], start[:, 0] - c[0])
+                sr = np.hypot(start[:, 0] - c[0], start[:, 1] - c[1])
+                o = np.argsort(sa)
+                rr = np.maximum(rr, np.interp(ang, np.concatenate([sa[o] - TWO_PI, sa[o], sa[o] + TWO_PI]),
+                                              np.tile(sr[o], 3)))
+        else:
+            # Below it the cloth hangs from the ring above (scaled for any flare) and
+            # only moves out where the body itself would poke through.
+            drape = 0.985 if flare <= 0 else 1.0       # unflared tails fall in a little
+            rr = np.maximum(prev[1] * (G / prev[2]) * drape, rr + floor)
+        prev = (c, rr, G)
         rings.append((c, y, rr))
     # Hull samples are coarse; smooth the radius around each ring and down the skirt.
     k = np.array([1, 2, 3, 2, 1], float) / 9
@@ -479,7 +513,10 @@ def garment_shell(b: Body, product: dict, family: str | None, slot: str,
                         b.girth_trunk(lm["hip_y"]) * 1.02)
             if family in ("dress", "kurta"):
                 g_top = max(cm("waist") or 0, b.girth_trunk(lm["waist_y"]) * 1.02)
-            parts.append(_skirt(b, hang_from + 0.015, hem, g_top, flare, floor + 0.004 + layer))
+            bod = parts[-1][0]
+            edge = bod[(bod[:, 1] < torso_bottom + 0.012) & (np.abs(bod[:, 0]) < abs(b.J["shoulder_l"][0]))]
+            parts.append(_skirt(b, hang_from + 0.005, hem, g_top, flare, floor + 0.004 + layer,
+                                start=edge[:, [0, 2]] if len(edge) else None))
     elif family == "skirt":
         top = lm["waist_y"] - 0.01
         keep = (aw < 0.5) & (y <= top) & (y >= lm["hip_y"])
