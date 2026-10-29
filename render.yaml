@@ -7,7 +7,7 @@
 # new frontend/StyleMate_frontend_*_gemini_vN.html has to trigger a deploy.
 services:
   - type: web
-    name: stylemate
+    name: dummyntra          # -> dummyntra.onrender.com (Render adds a suffix if taken). User's choice, 2026-10-30.
     runtime: python
     plan: free                 # 512 MB, sleeps after ~15 min idle; first visit after that takes ~1 min
     region: singapore          # closest to India. Cannot be changed after the first deploy.
