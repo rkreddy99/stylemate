@@ -218,6 +218,13 @@ def build(images: bool, seed: int) -> None:
     print(f"wrote {OUT} rows={len(rows)} {counts} in {time.time()-t0:.0f}s")
 
 
+def cdn(url: str) -> str:
+    """Myntra CDN link, https, resized to 600 px wide (~48 KB). The hosted site
+    serves no photos itself: Render has no copy of the source zip (D17, 2026-10-30)."""
+    return url.replace("http://", "https://", 1).replace(
+        "assets.myntassets.com/", "assets.myntassets.com/w_600,q_80/", 1)
+
+
 def make_row(z, names, sid, r, st, rt, rv, cat):
     if f"fashion-dataset/fashion-dataset/images/{sid}.jpg" not in names:
         return None
@@ -225,10 +232,12 @@ def make_row(z, names, sid, r, st, rt, rv, cat):
     if not sj or sj.get("ageGroup") not in ADULT_AGE:
         return None
     si = sj.get("styleImages") or {}
-    gallery = [si[a]["imageURL"].replace("http://", "https://", 1) for a in ("front", "back", "left", "right")
+    gallery = [cdn(si[a]["imageURL"]) for a in ("front", "back", "left", "right")
                if isinstance(si.get(a), dict) and si[a].get("imageURL")]
     if not gallery:
         return None
+    main = cdn(si["default"]["imageURL"]) if isinstance(si.get("default"), dict) and si["default"].get("imageURL") \
+        else gallery[0]
     mrp = float(r["price"])
     price = float(r.get("dprice") or mrp)
     attrs = {k: v for k, v in (r.get("attrs") or {}).items()
@@ -247,7 +256,7 @@ def make_row(z, names, sid, r, st, rt, rv, cat):
         "price": price, "mrp": mrp,
         "discount": round(100 - price / mrp * 100) if mrp > price else 0,
         "rating": rt.get("rating"), "ratingTotal": rt.get("rating_count"),
-        "photo": f"/img/{sid}.jpg", "image": f"/img/{sid}.jpg", "gallery": gallery,
+        "photo": main, "image": main, "gallery": gallery,
         "url": "https://www.myntra.com/" + (sj.get("landingPageUrl") or ""),
         "desc": f"{name} {r['brand']} {r['colour']} {r['type']} {' '.join(attrs.values())}".lower(),
         "spec": spec, "size": ", ".join(sizes), "sizes": sizes, "attrs": attrs,
