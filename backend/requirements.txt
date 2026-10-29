@@ -1,0 +1,9 @@
+# Core application layer - everything the app needs to run.
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.27
+pydantic>=2.6,<3.0
+python-multipart>=0.0.9
+httpx>=0.26
+numpy>=1.26
+opencv-python-headless>=4.9
+pillow>=10.2

@@ -1,0 +1,41 @@
+# Render Blueprint for StyleMate - https://render.com/docs/blueprint-spec
+#
+# One web service. FastAPI serves the storefront page, the 3D fitting room and
+# the /api the page calls; the Gemini key stays on the server.
+#
+# No rootDir on purpose: Render only rebuilds on changes INSIDE rootDir, and a
+# new frontend/StyleMate_frontend_*_gemini_vN.html has to trigger a deploy.
+services:
+  - type: web
+    name: stylemate
+    runtime: python
+    plan: free                 # 512 MB, sleeps after ~15 min idle; first visit after that takes ~1 min
+    region: singapore          # closest to India. Cannot be changed after the first deploy.
+    buildCommand: pip install -r backend/requirements.txt && python backend/sync_static.py
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/ping # answers without calling any model
+    autoDeployTrigger: commit  # every push to the branch redeploys
+    envVars:
+      # The only secret. Render asks for it once, when the Blueprint is created,
+      # and it never appears in this file, the repo or the page.
+      - key: GEMINI_API_KEY
+        sync: false
+      # Public mode: per-visitor and per-day limits on AI calls, model settings
+      # locked, audit lines to Render's Logs tab. See backend/app/guard.py.
+      - key: SM_PUBLIC
+        value: "1"
+      - key: SM_AI_PER_MINUTE   # AI calls per visitor per minute
+        value: "15"
+      - key: SM_AI_PER_DAY      # AI calls for the whole site per day (UTC)
+        value: "600"
+      # Gemini only: there is no Ollama on a host.
+      - key: SM_PROVIDER
+        value: gemini
+      - key: SM_GEMINI_TEXT_MODEL
+        value: gemini-3.1-flash-lite
+      - key: SM_GEMINI_VISION_MODEL
+        value: gemini-3.5-flash-lite
+      - key: SM_GEMINI_EMBED_MODEL
+        value: gemini-embedding-001
+      - key: SM_LLM_TIMEOUT
+        value: "60"

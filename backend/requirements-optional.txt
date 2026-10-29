@@ -1,0 +1,10 @@
+# Optional extras. The app runs without these; each unlocks one upgrade.
+#
+# mediapipe - landmark-based body evidence from the uploaded photo, instead of
+#   the OpenCV silhouette fallback. Needs Python 3.9-3.12 (no 3.13 wheel with
+#   the full `solutions` API at time of writing).
+mediapipe>=0.10.9 ; python_version < "3.13"
+
+# trimesh - load and resample supplier GLB/glTF garment meshes when you add
+#   real 3D assets under var/garment_assets/.
+trimesh>=4.1

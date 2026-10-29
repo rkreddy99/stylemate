@@ -1,0 +1,45 @@
+StyleMate
+=========
+
+   >>>  Double-click  Start_StyleMate.bat  <<<
+
+That is the whole thing. It finds Python, sets itself up the first time,
+starts the server and opens your browser.
+
+Sign in with:   test  /  test
+
+First run takes a few minutes while it installs. Every run after that
+starts in seconds. To stop StyleMate, close the black window.
+
+If it says Python is missing, install Python 3.12 from python.org and
+TICK "Add python.exe to PATH" on the first screen, then run it again.
+
+
+USING GEMINI
+  Inside the app, open "Agent model" in the feature bar, paste your Gemini
+  API key, save. The model list loads live from your key. The key goes only
+  to your own backend, stays in memory, and is never written to disk or sent
+  back to the browser.
+
+USING A LOCAL MODEL INSTEAD
+  ollama serve
+  ollama pull qwen2.5:7b
+  ollama pull qwen2.5vl:7b
+  Then pick "Local Ollama" in the same panel.
+
+NEITHER?
+  Everything still runs. Search falls back to a rule parser and Shop a Look
+  falls back to colour-and-placement detection. The app says so on screen.
+
+
+WHAT IS IN HERE
+  Start_StyleMate.bat   the only file you need to touch
+  backend\              the Python application layer
+  backend\README.md     how it works, and section 3 lists exactly what is
+                        real, what needs a model, and what is deliberately
+                        NOT faked (no real garment meshes, no cloth
+                        simulation, no SMPL-X - the app labels what it
+                        does instead of pretending)
+  frontend\             the storefront page on its own, if you ever want to
+                        serve it yourself. Not needed - the backend already
+                        serves it at http://localhost:8000
